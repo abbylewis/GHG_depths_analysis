@@ -1,0 +1,140 @@
+---
+title: "GWP"
+format: html
+editor: visual
+---
+
+## Table of contents
+
+-   
+
+## Step 1: Load data and packages
+
+```{r}
+#Load packages
+library(tidyverse)
+library(ggridges)
+
+#Load data
+data <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/2220/5/8553f79eeea9a6f722fc50d733ca9a74") %>%
+  filter(Focal_site) #Cleaned
+metadata <- read_delim("https://pasta.lternet.edu/package/data/eml/edi/2220/5/81f003749ad039837475571390b20190") %>%
+  filter(Focal_site)
+layer_sum <- read_csv("../CompiledData/layer_sum_not_mean.csv")
+```
+
+```{r}
+gwp_data <- layer_sum %>%
+  group_by(LakeID, Date) %>%
+  mutate(Oxygen = median(DO_mgL[Layer == "bot"], na.rm = T)) %>%
+  group_by(LakeID, Layer, Date) %>%
+  summarize(CH4_umolL = median(CH4_umolL, na.rm = T),
+            CO2_umolL = median(CO2_umolL, na.rm = T),
+            Oxygen = median(Oxygen, na.rm = T))
+```
+
+Molar concentrations
+
+```{r}
+tot <- gwp_data %>% 
+  mutate(total_umolL = CH4_umolL + CO2_umolL,
+         ratio_ch4_co2 = CH4_umolL/CO2_umolL) %>%
+  filter(!is.na(Layer), !is.na(ratio_ch4_co2), !Oxygen > 15,
+         Layer == "bot") %>%
+  ggplot(aes(x = Oxygen, y = total_umolL)) +
+  geom_point(aes(color = ratio_ch4_co2), shape = 21)+
+  geom_smooth(method = "lm", color = "black")+
+  scale_y_log10()+
+  scale_color_viridis_c(name = expression("Ratio of "~CH[4]*":"*"CO"[2]),
+                        trans = "log10",
+                        labels = scales::label_comma(drop0trailing = T),
+                        limits = c(0.00009, 1.1), # Set the upper limit
+                        oob = scales::squish,  # Clamp values outside limits
+                        )+
+  ylab(expression(atop(NA, atop(textstyle("Bottom-water conc."), 
+                                textstyle("("*mu*"M CO"[2]*
+                                            " + CH"[4]*")")))))+
+  xlab(expression("Bottom-water DO (mg L"^-1*")"))+
+  theme_bw()+
+  theme(legend.margin=ggplot2::margin(0,0,0,0),
+        legend.box.margin=ggplot2::margin(-10,-10,0,-10),
+        legend.text = element_text(angle = 45, hjust = 1),
+        legend.position = "bottom",
+        legend.title = element_text(margin = margin(r = 15, unit = "pt")))
+
+#Including DO > 15
+tot_full <- gwp_data %>% 
+  mutate(total_umolL = CH4_umolL + CO2_umolL,
+         ratio_ch4_co2 = CH4_umolL/CO2_umolL) %>%
+  filter(!is.na(Layer), !is.na(ratio_ch4_co2),
+         Layer == "bot") %>%
+  ggplot(aes(x = Oxygen, y = total_umolL)) +
+  geom_point(aes(color = ratio_ch4_co2), shape = 21)+
+  geom_smooth(method = "lm", color = "black")+
+  scale_y_log10()+
+  scale_color_viridis_c(name = expression("Ratio of "~CH[4]*":"*"CO"[2]),
+                        trans = "log10",
+                        labels = scales::label_comma(drop0trailing = T),
+                        limits = c(0.00009, 1.1), # Set the upper limit
+                        oob = scales::squish,  # Clamp values outside limits
+                        )+
+  ylab(expression(atop(NA, atop(textstyle("Bottom-water conc."), 
+                                textstyle("("*mu*"M CO"[2]*
+                                            " + CH"[4]*")")))))+
+  xlab(expression("Bottom-water DO (mg L"^-1*")"))+
+  theme_bw()+
+  theme(legend.margin=ggplot2::margin(0,0,0,0),
+        legend.box.margin=ggplot2::margin(-10,-10,0,-10),
+        legend.text = element_text(angle = 45, hjust = 1),
+        legend.position = "bottom",
+        legend.title = element_text(margin = margin(r = 15, unit = "pt")))
+
+medians <- gwp_data %>% 
+  mutate(total_umolL = CH4_umolL + CO2_umolL,
+         ratio_ch4_co2 = CH4_umolL/CO2_umolL,
+         Layer = case_match(Layer,
+                            "bot"~"Bottom",
+                            "surf"~"Surface"),
+         Layer = factor(Layer, levels = c("Surface", "Bottom"))) %>%
+  group_by(Layer) %>%
+  summarize(median = median(total_umolL, na.rm = T)) %>%
+  mutate(label = paste0("Median: ", round(median), " ~mu", "*M"),
+         y = c(0.62, 0.5))
+
+tot_density <- gwp_data %>% 
+  mutate(total_umolL = CH4_umolL + CO2_umolL, 
+         ratio_ch4_co2 = CH4_umolL/CO2_umolL,
+         Layer = case_match(Layer,
+                            "bot"~"Bottom",
+                            "surf"~"Surface"),
+         Layer = factor(Layer, levels = c("Surface", "Bottom"))) %>%
+  filter(!is.na(Layer)) %>%
+  ggplot(aes(x = total_umolL, color = Layer)) +
+  geom_density(aes(fill = Layer, alpha = Layer))+
+  geom_vline(aes(xintercept = median, color = Layer), data = medians) +
+  geom_label(aes(x = median, label = label, y = y), 
+            data = medians, parse = T, alpha = 0.8, show.legend = FALSE) +
+  scale_color_manual(values = c("grey50","black"))+
+  scale_fill_manual(values = c("grey50","black"))+
+  scale_alpha_manual(values = c(0.3, 0.7))+
+  scale_x_log10()+
+  ylab("\nDensity")+
+  xlab(expression(textstyle("Bottom-water conc. ("*mu*"M CO"[2]*" + CH"[4]*")")))+
+  theme_bw()+
+  theme(legend.position = "bottom",
+        legend.title = element_blank(),
+        legend.margin=ggplot2::margin(0,0,0,0),
+        legend.box.margin=ggplot2::margin(-15,-10,0,-10))
+
+comb_tot <- ggpubr::ggarrange(tot_density,
+                              tot + theme(legend.position = "bottom"), 
+                              labels = "auto", align = "h", widths = c(0.9,1))
+comb_tot
+ggsave(comb_tot, dpi = 300, 
+       filename = "../Figures/total moles combined.jpeg", 
+       width = 7, height = 3.5)
+
+ggsave(tot_full + theme(legend.position = "bottom"), dpi = 300, 
+       filename = "../Figures/total moles full - SI.jpeg", 
+       width = 4, height = 3.5)
+```

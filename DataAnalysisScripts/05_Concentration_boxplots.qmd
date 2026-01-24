@@ -1,0 +1,240 @@
+---
+title: "Concentration boxplots"
+format: html
+editor: visual
+---
+
+This file creates summary boxplots for the Supplemental Information
+
+## Table of contents
+
+-   Step 1: Load data and packages
+-   Step 2: Plot concentration by mixing regime
+-   Step 3: Plot concentration and ratio by lake type
+-   Step 4: Simpler summary plot for presentations
+
+## Step 1: Load data and packages
+
+```{r setup}
+#Load packages
+library(tidyverse)
+
+#Load data from EDI
+data <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/2220/5/8553f79eeea9a6f722fc50d733ca9a74") %>%
+  filter(Focal_site) #Cleaned
+metadata <- read_delim("https://pasta.lternet.edu/package/data/eml/edi/2220/5/81f003749ad039837475571390b20190") %>%
+  filter(Focal_site)
+layer_sum <- read_csv("../CompiledData/layer_sum_not_mean.csv")
+```
+
+## Step 2: Plot concentration by mixing regime
+
+```{r mix_troph}
+mix_troph <- layer_sum %>%
+  left_join(metadata) %>%
+  mutate(TrophicStatus = ifelse(is.na(TrophicStatus) | TrophicStatus == "other",
+                                       "not reported", 
+                                       TrophicStatus),
+         TrophicStatus = factor(TrophicStatus, 
+                                levels = c("oligotrophic", 
+                                           "mesotrophic", 
+                                           "eutrophic", 
+                                           "not reported")),
+         StratificationRegime = factor(StratificationRegime, 
+                                       levels = c("meromictic or amictic",
+                                                  "monomictic",
+                                                  "dimictic",
+                                                  "dimictic to polymictic", 
+                                                  "polymictic"),
+                                       labels = c("meromictic\nor amictic",
+                                                  "monomictic",
+                                                  "dimictic",
+                                                  "dimictic to\npolymictic", 
+                                                  "polymictic"))) %>%
+  pivot_longer(c(CO2_umolL, CH4_umolL), names_to = "gas") %>%
+  mutate(gas = case_match(gas,
+                          "CO2_umolL"~"CO[2]",
+                          "CH4_umolL"~"CH[4]"),
+         Layer = factor(Layer, levels = c("surf", "bot"),
+                        labels = c("Surface", "Bottom"))) %>%
+  group_by(gas, Layer, LakeID, TrophicStatus, StratificationRegime) %>%
+  summarize(max = max(value, na.rm = T)) %>%
+  filter(!is.na(StratificationRegime), !is.na(max))%>%
+  ggplot(aes(x = StratificationRegime, y = max)) +
+  geom_boxplot(outlier.shape = NA)+
+  geom_jitter(width = 0.2, aes(color = TrophicStatus), alpha = 0.2)+
+  scale_y_log10()+
+  ylab(expression("Concentration ("*mu*"M)"))+
+  theme_bw()+
+  facet_grid(gas ~ Layer, scales = "free", labeller = label_parsed) +
+  scale_color_manual(values = c("navy","turquoise3", "green4", "grey85"))+
+  egg::theme_article()+
+  theme(axis.title.x = element_blank(),
+        legend.title = element_blank(),
+        panel.grid.major = element_line(color = "grey90", size = 0.5),
+        panel.grid.minor = element_line(color = "grey95", size = 0.25),
+        axis.text.x = element_text(angle = 40,
+                                   vjust = 1,
+                                   hjust = 1,
+                                   lineheight = 0.6))
+
+ggsave("../Figures/Boxplot_mixing_trophic.jpeg", plot = mix_troph,
+       width = 6, height = 4, units = "in", dpi = 300)
+```
+
+## Step 3: Plot concentration and ratio by lake type
+
+```{r type_troph}
+# Calculate bottom:surface ratios
+fract <- layer_sum %>%
+  pivot_longer(c(CO2_umolL, CH4_umolL), names_to = "gas") %>%
+  group_by(gas, Layer, LakeID, Source) %>%
+  summarize(max = max(value, na.rm = T)) %>%
+  filter(!is.na(max))%>%
+  pivot_wider(names_from = Layer, values_from = max) %>%
+  filter(!is.na(bot),
+         !is.na(surf)) %>%
+  mutate(fract = bot/surf) %>%
+  select(fract, gas, LakeID, Source)
+
+data_for_box2 <- layer_sum %>%
+  left_join(metadata) %>%
+  mutate(TrophicStatus = ifelse(is.na(TrophicStatus) | TrophicStatus == "other",
+                                       "not reported", 
+                                       TrophicStatus),
+         TrophicStatus = factor(TrophicStatus, levels = c("oligotrophic", 
+                                           "mesotrophic", 
+                                           "eutrophic", 
+                                           "not reported"),
+                                labels = c("Oligotrophic", 
+                                           "Mesotrophic", 
+                                           "Eutrophic", 
+                                           "Not reported")),
+         LakeType = factor(LakeType, 
+                           levels = c("reservoir",
+                                      "lake",
+                                      "small lake",
+                                      "shallow lake or wetland",
+                                      "pond"),
+                           labels = c("Reservoir",
+                                      "Lake",
+                                      "Small lake",
+                                      "Shallow lake",
+                                      "Pond"))
+         ) %>%
+  pivot_longer(c(CO2_umolL, CH4_umolL), names_to = "gas") %>%
+  mutate(gas = factor(gas, levels = c("CH4_umolL", "CO2_umolL"),
+                      labels = c("CH[4]", "CO[2]"))) %>%
+  group_by(gas, Layer, LakeID, TrophicStatus, LakeType) %>%
+  summarize(max = max(value, na.rm = T)) %>%
+  filter(!is.na(LakeType), !is.na(max), is.finite(max))%>%
+  pivot_wider(names_from = Layer, values_from = max) %>%
+  mutate(surf = ifelse(surf==0, 0.001, surf), 
+         fract = bot/surf) %>%
+  pivot_longer(c(surf, bot, fract), names_to = "Layer", values_to = "max") %>%
+  mutate(Layer = factor(Layer,
+                        levels = c("surf", "bot", "fract"),
+                        labels = c("Surface", "Bottom",
+                                   "Bottom:surface"))) 
+
+stats <- data_for_box2 %>%
+  filter(!is.na(max),
+         !is.infinite(max)) %>%
+  group_by(Layer, gas) %>%
+  summarize(kruskal_p = kruskal.test(max ~ LakeType)$p.value,
+            p_vals = dunn.test::dunn.test(max, 
+                                           LakeType, 
+                                           method = "Bonferroni")$P.adjusted,
+            names = gsub(" ", "", dunn.test::dunn.test(max,
+                                                       LakeType, 
+                                                       method = "Bonferroni")$comparisons)) %>%
+  reframe(rcompanion::cldList(comparison = names,
+                                p.value = p_vals)) %>%
+  mutate(LakeType = case_match(Group,
+                            "Shallowlake"~"Shallow lake",
+                            "Smalllake"~"Small lake",
+                            .default = Group))
+  
+type_troph <- data_for_box2 %>%
+  ggplot(aes(x = LakeType, y = data_for_box2$max)) +
+  geom_hline(aes(yintercept = y), 
+             data = data.frame(Layer = "fract", 
+                               y = 1) %>%
+               mutate(Layer = factor(Layer,
+                                     levels = c("surf", "bot", "fract"),
+                                     labels = c("Surface", "Bottom",
+                                                "Bottom:surface"))))+
+  geom_boxplot(outlier.shape = NA)+
+  geom_jitter(width = 0.2, aes(color = TrophicStatus), alpha = 0.2)+
+  geom_text(data = stats, aes(label = Letter, y = Inf), vjust = 1.2) +
+  scale_y_log10(labels = scales::label_comma(drop0trailing = T),
+                expand = expansion(mult = c(0, .15)))+
+  ylab(expression("Concentration ("*mu*"M)")) +
+  theme_bw()+
+  ggh4x::facet_grid2(gas ~ Layer, scales = "free", independent = "y", 
+                     labeller = label_parsed,
+                     switch = "y") +
+  scale_color_manual(values = c("navy","turquoise3", "green4", "grey70"),
+                     name = "Trophic state")+
+  egg::theme_article() +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_text(angle = 40,
+                                   vjust = 1,
+                                   hjust = 1,
+                                   lineheight = 0.6),
+        panel.grid.major = element_line(color = "grey90", size = 0.5),
+        panel.grid.minor = element_line(color = "grey95", size = 0.25),
+        strip.placement = "outside",
+        legend.position = "bottom"
+        )
+
+ggsave("../Figures/Boxplot_type_trophic.jpeg", plot = type_troph, 
+       dpi = 300, width = 6.5, height = 4.5)
+```
+
+## Step 4: Simpler summary plot for presentations
+
+```{r simple_sum}
+summary_talk <- layer_sum %>%
+  filter(Layer == "bot") %>%
+  left_join(metadata) %>%
+  mutate(TrophicStatus = ifelse(is.na(TrophicStatus) | TrophicStatus == "other",
+                                       "not reported", 
+                                       TrophicStatus),
+         TrophicStatus = factor(TrophicStatus, 
+                                levels = c("oligotrophic", 
+                                           "mesotrophic", 
+                                           "eutrophic", 
+                                           "not reported")),
+         StratificationRegime = factor(StratificationRegime, 
+                                       levels = c("meromictic or amictic",
+                                                  "monomictic",
+                                                  "dimictic",
+                                                  "dimictic to polymictic", 
+                                                  "polymictic"),
+                                       labels = c("meromictic\nor amictic",
+                                                  "monomictic",
+                                                  "dimictic",
+                                                  "dimictic to\npolymictic", 
+                                                  "polymictic"))) %>%
+  group_by(LakeID, TrophicStatus, StratificationRegime) %>%
+  summarize(max = max(CH4_umolL, na.rm = T)) %>%
+  filter(!is.na(StratificationRegime), !is.na(max))%>%
+  ggplot(aes(x = StratificationRegime, y = max)) +
+  geom_boxplot(outlier.shape = NA)+
+  geom_jitter(width = 0.2, aes(color = TrophicStatus))+
+  scale_y_log10()+
+  ylab(bquote("Deep-water"~CH[4]~"(µmol/L)"))+
+  theme_bw()+
+  scale_color_manual(values = c("navy","turquoise3", "green4", "grey85"))+
+  theme(axis.title.x = element_blank(),
+        legend.title = element_blank())
+
+jpeg("../Figures/Hypo. CH4 vs Strat.jpeg", width = 4, height = 3.5, units = "in", res = 300)
+summary_talk + 
+  theme(axis.text.x = element_text(angle = 30, hjust = 1),
+        legend.position = "bottom",
+        legend.direction='vertical') +
+  guides(color=guide_legend(ncol=3))
+dev.off()
+```

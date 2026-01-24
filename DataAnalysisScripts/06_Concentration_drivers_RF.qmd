@@ -1,0 +1,403 @@
+---
+title: "Add thermo depth"
+format: html
+editor: visual
+---
+
+## Table of contents
+
+-   
+
+## Step 1: Load data and packages
+
+```{r}
+#Load packages
+library(tidyverse)
+library(randomForest)
+library(ggh4x)
+library(marelac)
+source("R/equilibrium_calcs.R")
+source("R/generate_plot_splmRF.R")
+source("R/generate_plot_ratio_splm.R")
+source("R/generate_plot_permutation.R")
+source("R/generate_plot_ratio_permutation.R")
+source("R/comp_two_rf_permutation.R")
+
+#Load data
+metadata <- read_delim("https://pasta.lternet.edu/package/data/eml/edi/2220/5/81f003749ad039837475571390b20190") %>%
+  filter(Focal_site)
+layer_sum <- read_csv("../CompiledData/layer_sum_not_mean.csv")
+
+#Create dictionary to use throughout
+var_names = c("DO_mgL" = "DO~(mg~L^-1)", 
+              "SurfaceArea_km2" = "SA~(km^2)", 
+              "MaximumDepth_m"="Max~depth~(m)", 
+              "MeanDepth_m"="Mean~depth~(m)", 
+              "TP_ugL_mean" = "TP~(µg~L^-1)",
+              "Temp_C" = "Temp~(ºC)",
+              "Osgood" = "Osgood",
+              "Absolute_latitude" = "Abs~lat~(DD)",
+              "buoyancy_frequency" = "Buoy~freq~(s^-2)",
+              "daylength" = "Day~length~(h)", 
+              "dens_dif" = "dens_dif",
+              "Latitude" = "Latitude",
+              "TrophicStatus" = "Trophic\nstatus",
+              "StratificationRegime" = "Stratification\nregime",
+              "bot_DO_mgL" = "Bot~DO~(mg~L^-1)",
+              "bot_buoyancy_frequency" = "Buoy~freq~(s^-2)",
+              "yday" = "Day~of~year",
+              "LakeID" = "Lake~random~effect")
+
+log_vars <- c("SurfaceArea_km2", "MeanDepth_m", 
+              "MaximumDepth_m", "TP_ugL_mean",
+              "bot_buoyancy_frequency", "Osgood",
+              "buoyancy_frequency")
+
+#Set seed to produce consistent RF results
+set.seed(47)
+```
+
+## Step 2: Calculate surf/bot values
+
+```{r}
+layer_plot_data <- layer_sum %>%
+  mutate(density = water.density(Temp_C)) %>%
+  group_by(LakeID, Date) %>%
+  mutate(dens_dif = ifelse(length(density) == 2,
+                           abs(density[Layer == "bot"] - 
+                                 density[Layer == "surf"]),
+                           NA)) %>%
+  pivot_longer(cols = CO2_umolL:CH4_umolL) %>%
+  group_by(LakeID, name, Layer) %>%
+  filter(!is.na(value)) %>%
+  mutate(feature = ifelse(value == max(value), #looking at the drivers of the lake-wise max
+                          T,
+                          F)) %>%
+  mutate(value = mean(value, na.rm = T),
+        yday = yday(Date),
+        year = year(Date)) %>%
+  group_by(name, Layer) %>%
+  mutate(name = ifelse(name == "CO2_umolL", 
+                      "CO[2]", 
+                      "CH[4]"))
+
+metadata_by_lake <- metadata %>%
+  group_by(LakeID) %>%
+  mutate(across(c(TrophicStatus, StratificationRegime),
+         \(x) ifelse(is.na(x), unique(x[!is.na(x)]), x)),
+         Osgood = MeanDepth_m/sqrt(SurfaceArea_km2)) %>%
+  summarize(across(c(MaximumDepth_m, 
+                     SurfaceArea_km2, 
+                     Chla_ugL_mean,
+                     TP_ugL_mean,
+                     DOC_mgL_mean,
+                     MeanDepth_m, 
+                     Osgood,
+                     Latitude,
+                     Longitude), 
+                   \(x) mean(x, na.rm = T)),
+            across(c(TrophicStatus, 
+                     StratificationRegime,
+                     LakeType), 
+                   \(x) paste(unique(x), collapse = " AND ")))
+
+metadata_by_lake %>%
+  filter(grepl(" AND ", TrophicStatus))
+```
+
+## Step 3: SPLM analysis
+
+```{r}
+all <- layer_plot_data  %>%
+  left_join(metadata_by_lake) %>%
+  mutate(TrophicStatus = ifelse(grepl(" AND ", TrophicStatus),
+                                NA,
+                                TrophicStatus),
+         StratificationRegime = ifelse(grepl(" AND ", StratificationRegime),
+                                NA,
+                                StratificationRegime),
+         value = ifelse(value <=0, 0.001, value),
+         value = log(value),
+         TrophicStatus = factor(TrophicStatus, 
+                                levels = c("oligotrophic", 
+                                           "mesotrophic", 
+                                           "eutrophic")),
+         StratificationRegime = factor(StratificationRegime, 
+                                       levels = c("meromictic or amictic",
+                                                  "monomictic",
+                                                  "dimictic",
+                                                  "dimictic to polymictic", 
+                                                  "polymictic"),
+                                       labels = c("meromictic\nor amictic",
+                                                  "monomictic",
+                                                  "dimictic",
+                                                  "dimictic to\npolymictic", 
+                                                  "polymictic")),
+         Absolute_latitude = abs(Latitude),
+         daylength = geosphere::daylength(Latitude, yday),
+         yday = ifelse(Latitude < 0, 
+                       ifelse(yday + 365/2 > 365, 
+                              yday - 365/2,
+                              yday + 365/2),
+                       yday))
+
+#The order of these controls the order of the drivers in importance/partial plots
+vars <- c("DO_mgL", 
+          "SurfaceArea_km2", 
+          #"pH",
+          "Osgood",
+          #"MeanDepth_m", 
+          #"buoyancy_frequency",
+          #"dens_dif",
+          "TP_ugL_mean",
+          #"yday",
+          #"daylength",
+          #"MaximumDepth_m",
+          #"TrophicStatus",
+          "Temp_C",
+          #"StratificationRegime",
+          "Absolute_latitude"
+          )
+
+log_select <- log_vars[log_vars %in% vars]
+  
+### SET UP ###
+for_cor <- all %>% 
+  filter(name == "CH[4]",
+         Layer == "bot",
+         if_all(all_of(log_select), \(x) x>0)
+         ) %>%
+  ungroup() %>%
+  mutate(across(all_of(log_select), log),
+         mutate(across(where(is.character), as.factor))) %>%
+  select(all_of(c("value", vars))) %>%
+  na.omit()
+
+cor(for_cor  %>%
+      ungroup() %>%
+      select(where(is.numeric)) %>%
+      select(any_of(vars)),
+    use = "pairwise.complete.obs",
+    method = "spearman")
+
+vars <- c(vars,
+          "Latitude",
+          "Longitude",
+          "LakeID")
+
+#New format
+
+co2_plot <- generate_plot_splmRF(all = all, vars = vars, var_names = var_names, 
+                                gas_name = "CO[2]", log_vars = log_vars)
+co2_plot
+ggsave(co2_plot, dpi = 300, 
+       filename = "../Figures/CO2 drivers - surf bot - splmRF.jpeg", 
+       width = 7, height = 6)
+
+ch4_plot <- generate_plot_splmRF(all, vars, var_names, "CH[4]", log_vars)
+ch4_plot
+ggsave(ch4_plot, dpi = 300, 
+       filename = "../Figures/CH4 drivers - surf bot - splmRF.jpeg", 
+       width = 7, height = 6)
+
+all_consistent <- all %>%
+  select(all_of(c("value", "LakeID", vars))) %>%
+  drop_na() %>%
+  group_by(LakeID) %>%
+  filter(n() == 4) #surface and bot co2 and ch4
+
+co2_plot <- generate_plot_splmRF(all = all_consistent, vars = vars, var_names = var_names, 
+                                gas_name = "CO[2]", log_vars = log_vars)
+ggsave(co2_plot, dpi = 300, 
+       filename = "../Figures/CO2 drivers - surf bot - splmRF - consistent.jpeg", 
+       width = 6, height = 5)
+
+ch4_plot <- generate_plot_splmRF(all_consistent, vars, var_names, "CH[4]", log_vars)
+ggsave(ch4_plot, dpi = 300, 
+       filename = "../Figures/CH4 drivers - surf bot - splmRF - consistent.jpeg", 
+       width = 6, height = 5)
+```
+
+## Step 4: Permutation
+
+```{r}
+co2_plot <- generate_plot_permutation(all = all, vars = vars, 
+                                      var_names = var_names, gas_name = "CO[2]",
+                                      log_vars = log_vars, reps = 10)
+co2_plot
+ggsave(co2_plot, dpi = 300, 
+       filename = "../Figures/CO2 drivers - surf bot - permutation.jpeg", 
+       width = 7, height = 6)
+
+ch4_plot <- generate_plot_permutation(all = all, vars = vars, 
+                                      var_names = var_names, gas_name = "CH[4]",
+                                      log_vars = log_vars, reps = 10)
+ch4_plot
+ggsave(ch4_plot, dpi = 300, 
+       filename = "../Figures/CH4 drivers - surf bot - permutation.jpeg", 
+       width = 7, height = 6)
+
+#Consistent
+co2_plot <- generate_plot_permutation(all = all_consistent, vars = vars, 
+                                      var_names = var_names, gas_name = "CO[2]",
+                                      log_vars = log_vars, reps = 10)
+co2_plot
+ggsave(co2_plot, dpi = 300, 
+       filename = "../Figures/CO2 drivers - surf bot - permutation - consistent.jpeg", 
+       width = 7, height = 6)
+
+ch4_plot <- generate_plot_permutation(all = all_consistent, vars = vars, 
+                                      var_names = var_names, gas_name = "CH[4]",
+                                      log_vars = log_vars, reps = 10)
+ch4_plot
+ggsave(ch4_plot, dpi = 300, 
+       filename = "../Figures/CH4 drivers - surf bot - permutation - consistent.jpeg", 
+       width = 7, height = 6)
+```
+
+## Step 5: Simple/complex comparison
+
+```{r}
+vars_simple <- c("SurfaceArea_km2", 
+          "Osgood",
+          "TrophicStatus",
+          "Absolute_latitude")
+
+colors <- c("#40476D", "#0C7C59", "#1098F7", "grey70")
+names(colors) <- c("Log surface area", "Trophic status", "Log max depth")
+
+s <- comp_two_rf_permutation(all, vars_simple, vars, gas_name, 
+                             layer_names, log_vars,reps = 10)
+
+ggsave(s, dpi = 300, filename = "../Figures/Model comparison - rmse comb imp - permutation.jpeg", width = 6, height = 5)
+```
+
+## Step 6: Ratio analysis
+
+```{r}
+epi_hypo <- layer_sum %>%
+  select(-Depth_m) %>%
+  pivot_longer(cols = CH4_umolL:buoyancy_frequency, 
+               names_to = "variable", values_to = "value") %>%
+  pivot_wider(names_from = c(Layer, variable), values_from = value) %>%
+  mutate(ratio_co2 = bot_CO2_umolL/surf_CO2_umolL,
+         ratio_ch4 = bot_CH4_umolL/surf_CH4_umolL) %>%
+  left_join(metadata_by_lake) %>%
+  mutate(Absolute_latitude = abs(Latitude))
+
+epi_hypo_co2 <- epi_hypo %>%
+  group_by(LakeID, Date) %>%
+  filter(ratio_co2 == max(ratio_co2, na.rm = T),
+         is.finite(ratio_co2)) %>%
+  mutate(name = "ratio_co2",
+         value = ifelse(ratio_co2 <=0, 0.001, ratio_co2),
+         value = log(value))
+
+epi_hypo_ch4 <- epi_hypo %>%
+  group_by(LakeID, Date) %>%
+  filter(ratio_ch4 == max(ratio_ch4, na.rm = T),
+         is.finite(ratio_ch4)) %>%
+  mutate(name = "ratio_ch4") %>%
+  mutate(value = ifelse(ratio_ch4 <=0, 0.001, ratio_ch4),
+         value = log(value))
+
+vars <- c("bot_DO_mgL", 
+          "SurfaceArea_km2", 
+          #"MeanDepth_m", 
+          "TP_ugL_mean",
+          #"MaximumDepth_m",
+          "bot_buoyancy_frequency",
+          "Osgood",
+          #"TrophicStatus",
+          #"bot_Temp_C",
+          #"surf_Temp_C",
+          #"StratificationRegime",
+          "Absolute_latitude"
+          )
+
+#SPLM
+comb_plot <- generate_plot_ratio_splm(all_co2 = epi_hypo_co2, 
+                                 all_ch4 = epi_hypo_ch4,
+                                 vars = vars, var_names = var_names, 
+                                 log_vars = log_vars)
+comb_plot
+ggsave(comb_plot, dpi = 300, 
+       filename = "../Figures/Ratio drivers - splmRF.jpeg", 
+       width = 6, height = 5)
+
+#Permutation
+comb_plot <- generate_plot_ratio_permutation(all_co2 = epi_hypo_co2, 
+                                 all_ch4 = epi_hypo_ch4,
+                                 vars = vars, var_names = var_names, 
+                                 log_vars = log_vars,
+                                 reps = 10)
+comb_plot
+ggsave(comb_plot, dpi = 300, 
+       filename = "../Figures/Ratio drivers - permutation.jpeg", 
+       width = 6, height = 5)
+```
+
+## Step 7: Percent saturation
+
+```{r}
+all_pSat <- all %>%
+  mutate(
+    month = month(as.Date(paste0(year,"-01-01")) + days(round(yday, 0)-1)),
+    value = case_when(
+      name == "CO[2]"~(exp(value) / calc_CO2_equil(Temp_C, year, month)) * 100,
+      name == "CH[4]"~(exp(value) / calc_CH4_equil(Temp_C, year, month)) * 100
+    ),
+    value = log(value)
+  ) %>%
+  filter(!is.na(value))
+
+vars <- c("DO_mgL", 
+          "SurfaceArea_km2", 
+          "Osgood",
+          "TP_ugL_mean",
+          "Temp_C",
+          "Absolute_latitude"
+          )
+
+cor(all  %>%
+      ungroup() %>%
+      filter(Layer == "bot") %>% 
+      select(is.numeric) %>%
+      select(any_of(vars)),
+    use = "pairwise.complete.obs",
+    method = "spearman")
+
+#New format
+
+#co2_plot <- generate_plot_splmRF(all = all_pSat, vars, var_names, 
+#                                gas_name = "CO[2]", log_vars, pSat = T)
+#co2_plot
+#ggsave(co2_plot, dpi = 300, 
+#       filename = "../Figures/CO2 drivers - surf bot - pSat.jpeg", 
+#       width = 6, height = 4.5)
+#
+#ch4_plot <- generate_plot_splmRF(all_pSat, vars, var_names, 
+#                                "CH[4]", log_vars, pSat = T)
+#ch4_plot
+#ggsave(ch4_plot, dpi = 300, 
+#       filename = "../Figures/CH4 drivers - surf bot - pSat.jpeg", 
+#       width = 6, height = 4.5)
+#
+co2_plot <- generate_plot_permutation(all = all_pSat, vars = vars, 
+                                      var_names = var_names, pSat = T,
+                                      gas_name = "CO[2]", log_vars = log_vars, 
+                                      reps = 10)
+co2_plot
+ggsave(co2_plot, dpi = 300, 
+       filename = "../Figures/CO2 drivers - surf bot - pSat - permutation.jpeg", 
+       width = 7, height = 6)
+
+ch4_plot <- generate_plot_permutation(all = all_pSat, vars = vars, 
+                                      var_names = var_names, pSat = T,
+                                      gas_name = "CH[4]", log_vars = log_vars, 
+                                      reps = 10)
+ch4_plot
+ggsave(ch4_plot, dpi = 300, 
+       filename = "../Figures/CH4 drivers - surf bot - pSat - permutation.jpeg", 
+       width = 7, height = 6)
+```

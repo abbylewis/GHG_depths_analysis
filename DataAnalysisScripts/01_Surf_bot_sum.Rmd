@@ -1,0 +1,204 @@
+---
+title: "Surface/bottom data summary"
+author: "Abby Lewis"
+date: "2024-08-08"
+output: html_document
+---
+
+This file creates a summarized data frame with surface-water and bottom-water data for each lake/date, as well as maximum buoyancy frequency on that date. To calculate buoyancy frequency, we first interpolate all data to a 1m resolution.
+
+## Table of contents
+
+-   Step 1: Load packages and data
+-   Step 2: Combine data
+-   Step 3: Interpolate temperature
+-   Step 4: Calculate buoyancy frequency
+-   Step 5: Create df with surface and bottom measurements and buoyancy frequency
+
+## Step 1: Load packages and data
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(pracma) #For interpolation function
+library(tidyverse)
+library(rLakeAnalyzer)
+
+#Load data from EDI
+data <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/2220/5/ca2482ef3c43f053ae13cdf2bf5ba7a8") %>%
+  filter(Focal_site) #Not cleaned
+cleaned_data <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/2220/5/8553f79eeea9a6f722fc50d733ca9a74") %>%
+  filter(Focal_site) #Cleaned
+temp <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/2220/5/a101f4f31d3b2aa3dd81490892bd0b15") %>%
+  filter(Focal_site)
+metadata <- read_delim("https://pasta.lternet.edu/package/data/eml/edi/2220/5/81f003749ad039837475571390b20190") %>%
+  filter(Focal_site)
+```
+
+## Step 2: Combine data
+
+```{r combine}
+#Match with metadata
+profiles <- data %>%
+  bind_rows(temp) %>%
+  left_join(metadata)%>%
+  rename(reported_max_depth = MaximumDepth_m) %>% 
+  dplyr::select(LakeID, Date, Depth_m, Temp_C, Source) %>%
+  mutate(LakeID = paste(LakeID, Source, sep = "_"))
+
+#summarize temps to depth and date, for lakes with high frequency measurements
+profiles <- profiles %>%
+  group_by(LakeID, Depth_m, Date, Source) %>%
+  summarize(
+    Temp_C = mean(Temp_C, na.rm = T)
+  )
+```
+
+## Step 3: Interpolate temperature
+
+```{r interpolate}
+#Prep for interpolation
+#We need at least three depths with water temp data
+to_profiles_cleaning2 <- profiles %>%
+  filter(!is.na(Temp_C) & !is.nan(Temp_C)) %>%
+  arrange(LakeID, Date, Depth_m)  %>%
+  group_by(LakeID, Date) %>% 
+  mutate(somany=n_distinct(Depth_m)) %>% 
+  ungroup() %>% 
+  filter(somany > 2, #Can't do interpolation unless there are 3 depths
+         !is.na(Date)) %>% 
+  dplyr::select(-somany)
+
+#Function to interpolate water temperature
+interp_t <- function(lake, to_profiles_cleaning2){
+  alldates<-to_profiles_cleaning2 %>% 
+    dplyr::select(LakeID,Date,Depth_m,Temp_C) %>%
+    filter(LakeID==lake) %>%
+    dplyr::select(Date) %>% 
+    unique() %>% 
+    unlist() %>% 
+    as.vector()
+  
+  lake_data <- to_profiles_cleaning2 %>%
+    filter(LakeID == lake)
+  
+  interpolatedvalues.do <- map_df(alldates, 
+                                  run_all_dates_t, 
+                                  lake_data,lake)
+  
+  return(interpolatedvalues.do)
+}
+
+#Function to run across all dates
+run_all_dates_t <- function(alldates, lake_data, lake){
+  profile <- lake_data %>% 
+    filter(Date == alldates)
+  
+  datamatrix_<- data.frame(
+    depths=profile$Depth_m,
+    values=profile$Temp_C) %>%
+    group_by(depths) %>% 
+    dplyr::summarize(valuemean=mean(values)) %>% 
+    ungroup() %>% 
+    as.matrix()
+  
+  max_depth <- max(profile$Depth_m, na.rm= T)
+  interpolated.depths <- seq(from=min(profile$Depth_m), to= max(profile$Depth_m),
+                             by = ifelse(max_depth < 3, 0.25, 1))
+  
+  if(max_depth <= 3){
+    interpolated.dos <- interp1(x= datamatrix_[,1], 
+                            y=datamatrix_[,2],
+                            xi= interpolated.depths)
+  } else {
+    interpolated.dos <- pchip(xi= datamatrix_[,1], 
+                            yi=datamatrix_[,2],
+                            x= interpolated.depths)
+  }
+  
+  output = data.frame(LakeID = lake,
+                      Date = alldates,
+                      Depth_m = interpolated.depths,
+                      Temp_C = interpolated.dos)
+  
+  return(output)
+}
+
+laken <- to_profiles_cleaning2$LakeID %>% unique()
+interpolatedvalues.t <- map_df(laken, interp_t, to_profiles_cleaning2)
+```
+
+## Step 4: Calculate buoyancy frequency
+
+```{r bf}
+#Add shallow lakes back in (these wouldn't have been able to interpolate)
+re_add <- profiles %>%
+  filter(!is.na(Temp_C) & !is.nan(Temp_C)) %>%
+  arrange(LakeID, Date, Depth_m)  %>%
+  group_by(LakeID, Date) %>% 
+  filter(n_distinct(Depth_m) == 2) %>%
+  left_join(metadata %>%
+              mutate(LakeID = paste(LakeID, Source, sep = "_")) %>%
+              select(LakeID, MaximumDepth_m)) %>%
+  filter(MaximumDepth_m < 3) %>%
+  select(-Source, -MaximumDepth_m)
+
+database.interp <- interpolatedvalues.t %>%
+  mutate(Date = as.Date(Date, origin = "1970-01-01")) %>%
+  bind_rows(re_add) %>%
+  group_by(LakeID, Date) %>%
+  arrange(Depth_m, .by_group = T)
+
+buoyancy_freq <- database.interp %>%
+  group_by(LakeID, Date) %>% 
+  filter(!is.na(Temp_C),
+         !is.na(Depth_m),
+         n() >= 3) %>% #Need 3 measurements for thermo depth
+  dplyr::summarize(buoyancy_frequency = max(rLakeAnalyzer::buoyancy.freq(Temp_C, Depth_m))) %>%
+  ungroup() %>%
+  distinct() %>%
+  separate(LakeID, into = c("LakeID", "Source"), sep = "_") %>%
+  left_join(metadata %>% dplyr::select(LakeID, LakeName, Source), by = c("LakeID", "Source"))
+```
+
+## Step 5: Create df with surface and bottom measurements and buoyancy frequency
+
+```{r comb}
+layer_sum_not_mean <- cleaned_data %>%
+  select(LakeID, Source, Date, Depth_m, CO2_umolL, CH4_umolL, DO_mgL, Temp_C, TP_ugL) %>%
+  pivot_longer(CO2_umolL:TP_ugL) %>%
+  group_by(LakeID, Source, Date, name) %>%
+  summarize(surf_depth = min(Depth_m, na.rm = T),
+            surf_value = value[Depth_m == surf_depth],
+            bot_depth = max(Depth_m, na.rm = T),
+            bot_value = value[Depth_m == bot_depth]) %>%
+  pivot_longer(
+    cols = c(surf_depth, surf_value, bot_depth, bot_value),
+    names_to = c("Layer", ".value"),
+    names_pattern = "(surf|bot)_(.*)"
+  ) %>%
+  pivot_wider(
+    names_from = name,
+    values_from = value
+  ) %>%
+  rename(Depth_m = depth) %>%
+  left_join(metadata) %>%
+  filter(Layer == "surf" & (Depth_m < 0.5 | Depth_m < 1/3*MaximumDepth_m) |
+           Layer == "bot" & (Depth_m > 2/3*MaximumDepth_m)) %>%
+  select(LakeID:Temp_C, MaximumDepth_m) %>%
+  left_join(buoyancy_freq %>% select(LakeID, Source, Date, buoyancy_frequency) %>% distinct())
+
+write_csv(layer_sum_not_mean, "../CompiledData/layer_sum_not_mean.csv")
+
+median(layer_sum_not_mean$Depth_m[layer_sum_not_mean$Layer == "surf"])
+sd(layer_sum_not_mean$Depth_m[layer_sum_not_mean$Layer == "surf"])
+max(layer_sum_not_mean$Depth_m[layer_sum_not_mean$Layer == "surf"])
+median(layer_sum_not_mean$Depth_m[layer_sum_not_mean$Layer == "bot"]/
+         layer_sum_not_mean$MaximumDepth_m[layer_sum_not_mean$Layer == "bot"],
+       na.rm = T)
+sd(layer_sum_not_mean$Depth_m[layer_sum_not_mean$Layer == "bot"]/
+         layer_sum_not_mean$MaximumDepth_m[layer_sum_not_mean$Layer == "bot"],
+       na.rm = T)
+min(layer_sum_not_mean$Depth_m[layer_sum_not_mean$Layer == "bot"]/
+         layer_sum_not_mean$MaximumDepth_m[layer_sum_not_mean$Layer == "bot"],
+    na.rm = T)
+```
