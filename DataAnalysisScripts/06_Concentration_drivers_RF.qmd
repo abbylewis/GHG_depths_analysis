@@ -15,6 +15,7 @@ editor: visual
 library(tidyverse)
 library(randomForest)
 library(ggh4x)
+library(rLakeAnalyzer)
 library(marelac)
 source("R/equilibrium_calcs.R")
 source("R/generate_plot_splmRF.R")
@@ -70,9 +71,6 @@ layer_plot_data <- layer_sum %>%
   pivot_longer(cols = CO2_umolL:CH4_umolL) %>%
   group_by(LakeID, name, Layer) %>%
   filter(!is.na(value)) %>%
-  mutate(feature = ifelse(value == max(value), #looking at the drivers of the lake-wise max
-                          T,
-                          F)) %>%
   mutate(value = mean(value, na.rm = T),
         yday = yday(Date),
         year = year(Date)) %>%
@@ -201,10 +199,14 @@ ggsave(ch4_plot, dpi = 300,
        width = 7, height = 6)
 
 all_consistent <- all %>%
-  select(all_of(c("value", "LakeID", vars))) %>%
+  ungroup() %>%
+  select(all_of(c("value", "name","Layer","LakeID", vars))) %>%
   drop_na() %>%
   group_by(LakeID) %>%
-  filter(n() == 4) #surface and bot co2 and ch4
+  filter(sum(Layer == "bot" & name == "CO[2]") >= 1,
+         sum(Layer == "bot" & name == "CH[4]") >= 1,
+         sum(Layer == "surf" & name == "CO[2]") >= 1,
+         sum(Layer == "surf" & name == "CH[4]") >= 1)
 
 co2_plot <- generate_plot_splmRF(all = all_consistent, vars = vars, var_names = var_names, 
                                 gas_name = "CO[2]", log_vars = log_vars)
