@@ -1,5 +1,5 @@
 #Atmos CO2
-atmos_co2 <- read.delim('ftp://aftp.cmdl.noaa.gov/products/trends/co2/co2_mm_mlo.txt', 
+atmos_co2 <- read.delim('https://gml.noaa.gov/webdata/ccgg/trends/co2/co2_mm_mlo.txt', 
                    comment.char = '#', header = F, sep = '', 
                    col.names = c('Year','Month','Time','CO2_Concentration',
                                  'Interpolated','Trend','Days', "Uncertainty"),
