@@ -9,8 +9,8 @@ comp_two_rf_permutation <- function(all,
                                     reps = 100){
   
   vars <- vars[!vars %in% c("LakeID", "Latitude", "Longitude")]
-  colors <- c("#69140E", "#40476D", "#0C7C59", "#1098F7", "#E65F5C", "gray70", "grey70", "grey70")
-  names(colors) <- vars
+  colors <- c("#40476D", "#1098F7", "#0C7C59", "gray70")
+  names(colors) <- vars_simple
   
   log_select <- log_vars[log_vars %in% c(vars, vars_simple)]
   
@@ -87,7 +87,7 @@ comp_two_rf_permutation <- function(all,
               title = paste0("'", unique(Layer), "'~", unique(gas), 
                              "~`(`*italic(n)*` =`~", unique(n), 
                              "*'; '*mean~R^2*' = '~", round(unique(r2),2), 
-                             "~')'"),
+                             "*')'"),
               .groups = "drop") %>%
     mutate(fct_order = case_when(gas == "CH[4]" & Layer == "Surface"~1,
                              gas == "CO[2]" & Layer == "Surface"~2,

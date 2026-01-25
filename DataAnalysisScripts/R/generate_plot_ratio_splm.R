@@ -4,7 +4,7 @@ generate_plot_ratio_splm <- function(all_co2, all_ch4, vars, var_names, log_vars
   
   vars_reg <- vars[!vars %in% c("LakeID", "Latitude", "Longitude")]
   vars <- c(vars, "LakeID", "Latitude", "Longitude")
-  colors <- c("#69140E", "#40476D", "#0C7C59", "#1098F7", "#E65F5C", "gray70", "grey70", "grey70")
+  colors <- c("#69140E", "#40476D", "#1098F7", "#0C7C59", "#E65F5C", "gray70", "grey70", "grey70")
   names(colors) <- vars_reg
   
   var_names_part <- c("DO_mgL" = "DO~(mg~L^-1)", 

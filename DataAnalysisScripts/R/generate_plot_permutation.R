@@ -4,7 +4,7 @@ generate_plot_permutation <- function(all, vars, var_names, gas_name, log_vars,
                                       pSat = F, reps = 100){
   
   vars <- vars[!vars %in% c("LakeID", "Latitude", "Longitude")]
-  colors <- c("#69140E", "#40476D", "#0C7C59", "#1098F7", "#E65F5C", "gray70", "grey70", "grey70")
+  colors <- c("#69140E", "#40476D", "#1098F7", "#0C7C59", "#E65F5C", "gray70", "grey70", "grey70")
   names(colors) <- vars
   
   var_names_part <- c("DO_mgL" = "DO~(mg~L^-1)", 

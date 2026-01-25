@@ -142,18 +142,9 @@ all <- layer_plot_data  %>%
 #The order of these controls the order of the drivers in importance/partial plots
 vars <- c("DO_mgL", 
           "SurfaceArea_km2", 
-          #"pH",
           "Osgood",
-          #"MeanDepth_m", 
-          #"buoyancy_frequency",
-          #"dens_dif",
           "TP_ugL_mean",
-          #"yday",
-          #"daylength",
-          #"MaximumDepth_m",
-          #"TrophicStatus",
           "Temp_C",
-          #"StratificationRegime",
           "Absolute_latitude"
           )
 
@@ -265,9 +256,6 @@ vars_simple <- c("SurfaceArea_km2",
           "TrophicStatus",
           "Absolute_latitude")
 
-colors <- c("#40476D", "#0C7C59", "#1098F7", "grey70")
-names(colors) <- c("Log surface area", "Trophic status", "Log max depth")
-
 s <- comp_two_rf_permutation(all, vars_simple, vars, gas_name, 
                              layer_names, log_vars,reps = 10)
 
@@ -305,27 +293,21 @@ epi_hypo_ch4 <- epi_hypo %>%
 
 vars <- c("bot_DO_mgL", 
           "SurfaceArea_km2", 
-          #"MeanDepth_m", 
-          "TP_ugL_mean",
-          #"MaximumDepth_m",
-          "bot_buoyancy_frequency",
           "Osgood",
-          #"TrophicStatus",
-          #"bot_Temp_C",
-          #"surf_Temp_C",
-          #"StratificationRegime",
+          "TP_ugL_mean",
+          "bot_buoyancy_frequency",
           "Absolute_latitude"
           )
 
 #SPLM
-comb_plot <- generate_plot_ratio_splm(all_co2 = epi_hypo_co2, 
-                                 all_ch4 = epi_hypo_ch4,
-                                 vars = vars, var_names = var_names, 
-                                 log_vars = log_vars)
-comb_plot
-ggsave(comb_plot, dpi = 300, 
-       filename = "../Figures/Ratio drivers - splmRF.jpeg", 
-       width = 6, height = 5)
+#comb_plot <- generate_plot_ratio_splm(all_co2 = epi_hypo_co2, 
+#                                 all_ch4 = epi_hypo_ch4,
+#                                 vars = vars, var_names = var_names, 
+#                                 log_vars = log_vars)
+#comb_plot
+#ggsave(comb_plot, dpi = 300, 
+#       filename = "../Figures/Ratio drivers - splmRF.jpeg", 
+#       width = 6, height = 5)
 
 #Permutation
 comb_plot <- generate_plot_ratio_permutation(all_co2 = epi_hypo_co2, 
