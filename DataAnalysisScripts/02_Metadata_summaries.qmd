@@ -108,8 +108,8 @@ grat_wintri <-
 label_grat_y <- grat_wintri %>% st_drop_geometry %>% filter(degree != 89.9) %>%
   filter(degree != -89.9) %>% filter(type == "N") %>%
   mutate(degree_label = sub("\\..", "", degree_label)) %>%
-  select(degree_label, x_start, y_start) %>% 
-  rename(long = x_start, lat = y_start) %>% st_as_sf(coords = c("long", "lat"), crs = 4326) %>%
+  select(degree_label, x_end, y_start) %>% 
+  rename(long = x_end, lat = y_start) %>% st_as_sf(coords = c("long", "lat"), crs = 4326) %>%
   st_transform_proj(crs = crs_wintri)
 label_grat_x <- grat_wintri %>% st_drop_geometry %>% filter(type == "E") %>%
   select(degree_label, x_start, y_end) %>% 
@@ -163,7 +163,7 @@ co2 <- ns$n[ns$Data_avail == "CO[2]"]
 map <- ggplot(data = world_wintri) +
   geom_sf(data = wintri_outline,
     fill = "#EDF6FD", size = 0.5/.pt) + 
-  geom_sf(data = grat_wintri, color = "black", size = 0.05, alpha = 0.7, 
+  geom_sf(data = grat_wintri, color = "black", size = 0.13, alpha = 0.7, 
           linetype = "dotted") + 
   geom_sf(fill = "white", color = "grey50", size = 0.5/.pt) +
   geom_sf(data = meta_wintri %>% filter(Data_avail == "CO[2]"),
@@ -175,6 +175,10 @@ map <- ggplot(data = world_wintri) +
   geom_sf(data = meta_wintri %>% filter(Data_avail == "Both"),
           aes(fill = Data_avail),shape = 21, color = "white", 
           size = 2, alpha  =.5, stroke = .4)+
+  geom_sf_text(data = label_grat_y, aes(label = degree_label), parse = T,
+               nudge_x = c(1400000), size = 2.5) +
+  geom_sf_text(data = label_grat_x, aes(label = degree_label), parse = T,
+               nudge_y = c(400000), size = 2.5) +
   coord_sf(datum = NULL, expand = T)+
   scale_fill_manual(values = c("#294867","#A41D6E","#FD8C0C"),
                     name = "Data availability",
