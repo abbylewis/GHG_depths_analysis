@@ -47,15 +47,16 @@ tot <- formatted_data %>%
          ratio_ch4_co2 = CH4_umolL/CO2_umolL) %>%
   filter(!is.na(Layer), !is.na(ratio_ch4_co2), !Oxygen > 15,
          Layer == "bot") %>%
+  mutate(ratio_ch4_co2 = ifelse(ratio_ch4_co2 == 0, 0.0001,
+                                ratio_ch4_co2)) %>%
   ggplot(aes(x = Oxygen, y = total_umolL)) +
   geom_point(aes(color = ratio_ch4_co2), shape = 21)+
   geom_smooth(method = "lm", color = "black")+
   scale_y_log10()+
-  scale_color_viridis_c(name = expression("Ratio of "~CH[4]*":"*"CO"[2]),
-                        trans = "log10",
+  scale_color_gradientn(name = expression("Ratio of "~CH[4]*":"*"CO"[2]),
+                        transform = "log10",
                         labels = scales::label_comma(drop0trailing = T),
-                        limits = c(0.00009, 1.1), # Set the upper limit
-                        oob = scales::squish,  # Clamp values outside limits
+                        colors = c("#ffd138","#FD8C0C","#A41D6E","#7a044b") #loosely corresponding to map figure 1, edited to increase contrast
                         )+
   ylab(expression(atop(NA, atop(textstyle("Bottom-water conc."), 
                                 textstyle("("*mu*"M CO"[2]*
@@ -74,15 +75,16 @@ tot_full <- formatted_data %>%
          ratio_ch4_co2 = CH4_umolL/CO2_umolL) %>%
   filter(!is.na(Layer), !is.na(ratio_ch4_co2),
          Layer == "bot") %>%
+  mutate(ratio_ch4_co2 = ifelse(ratio_ch4_co2 == 0, 0.0001,
+                                ratio_ch4_co2)) %>%
   ggplot(aes(x = Oxygen, y = total_umolL)) +
   geom_point(aes(color = ratio_ch4_co2), shape = 21)+
   geom_smooth(method = "lm", color = "black")+
   scale_y_log10()+
-  scale_color_viridis_c(name = expression("Ratio of "~CH[4]*":"*"CO"[2]),
-                        trans = "log10",
+  scale_color_gradientn(name = expression("Ratio of "~CH[4]*":"*"CO"[2]),
+                        transform = "log10",
                         labels = scales::label_comma(drop0trailing = T),
-                        limits = c(0.00009, 1.1), # Set the upper limit
-                        oob = scales::squish,  # Clamp values outside limits
+                        colors = c("#ffd138","#FD8C0C","#A41D6E","#7a044b") #loosely corresponding to map figure 1, edited to increase contrast
                         )+
   ylab(expression(atop(NA, atop(textstyle("Bottom-water conc."), 
                                 textstyle("("*mu*"M CO"[2]*
@@ -105,7 +107,7 @@ medians <- formatted_data %>%
   group_by(Layer) %>%
   summarize(median = median(total_umolL, na.rm = T)) %>%
   mutate(label = paste0("Median: ", round(median), " ~mu", "*M"),
-         y = c(0.62, 0.5))
+         y = c(0.59, 0.5))
 
 tot_density <- formatted_data %>% 
   mutate(total_umolL = CH4_umolL + CO2_umolL, 
