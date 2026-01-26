@@ -5,6 +5,17 @@ library(ranger)
 library(ggtext)
 source(here::here("DataAnalysisScripts","R", "pseudo_log_breaks.R"))
 
+#' Plot drivers of gas concentrations or saturation (SPLM)
+#'
+#' @param all Dataframe of focal data and drivers
+#' @param vars Driver variables
+#' @param var_names Variable names for figure
+#' @param gas_name Which gas to analyze ('CH[4]' or 'CO[2]')
+#' @param log_vars Which variables should be log transformed
+#' @param pSat Are we plotting gas saturation? (changes axis label)
+#'
+#' @returns Drivers figure (SPLM)
+#' 
 generate_plot_splmRF <- function(all, vars, var_names, gas_name, log_vars, pSat = F){
   
   vars_reg <- vars[!vars %in% c("LakeID", "Latitude", "Longitude")]
