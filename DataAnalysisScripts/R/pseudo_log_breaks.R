@@ -1,3 +1,4 @@
+
 pseudo_log_breaks <- function(n = 5, sigma = 1, base = 10) {
   force_all(n, base)
   n_default = n

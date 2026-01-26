@@ -1,10 +1,18 @@
 source(here::here("DataAnalysisScripts","R", "pseudo_log_breaks.R"))
 
+#' Compare two random forest regressions
+#'
+#' @param all Dataframe of focal data and drivers
+#' @param vars_simple Driver variables for simple regression
+#' @param vars Driver variables for complex regression
+#' @param log_vars Which variables should be log transformed
+#' @param reps How many replications (permutation approach)
+#'
+#' @returns Figure comparing the approaches
+#' 
 comp_two_rf_permutation <- function(all, 
                                     vars_simple, 
                                     vars, 
-                                    gas_name, 
-                                    layer_names,
                                     log_vars,
                                     reps = 100){
   
@@ -180,6 +188,17 @@ comp_two_rf_permutation <- function(all,
   return(s)
 }
 
+#' Compare regressions
+#'
+#' @param rep_n Which rep are we on
+#' @param for_rf Data to use
+#' @param vars_simple Driver variables for simple regression
+#' @param vars Driver variables for complex regression
+#' @param gas_name Focal gas ("CH[4]" or "CO[2]")
+#' @param layer_names Focal layer ("surf" or "bot")
+#'
+#' @returns list with model performance metrics and variable importance for the simple regression
+#' 
 permutation_rf_comp <- function(rep_n, for_rf, vars_simple, 
                                 vars, gas_name, layer_names){
   for_rf_lim <- for_rf %>%

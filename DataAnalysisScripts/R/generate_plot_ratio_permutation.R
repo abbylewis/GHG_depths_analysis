@@ -1,5 +1,17 @@
 source(here::here("DataAnalysisScripts","R", "pseudo_log_breaks.R"))
 
+#' Plot drivers of gas ratio (bottom:surface)
+#'
+#' @param all_co2 Dataframe of focal data and drivers (CO2)
+#' @param all_ch4 Dataframe of focal data and drivers (CH4)
+#' @param vars Driver variables
+#' @param var_names Variable names for figure
+#' @param log_vars Which variables should be log transformed
+#' @param pSat Are we plotting gas saturation? (changes axis label)
+#' @param reps How many replications (permutation approach)
+#'
+#' @returns Drivers figure
+#' 
 generate_plot_ratio_permutation <- function(all_co2, 
                                             all_ch4,
                                             vars, var_names, 

@@ -4,13 +4,21 @@ format: html
 editor: visual
 ---
 
+This file runs random forest regressions to characterize the drivers of surface- and bottom-water GHG concentrations and saturation, as well as the ratio of bottom to surface concentrations.
+
 ## Table of contents
 
--   
+-   Step 1: Load data and packages
+-   Step 2: Format data for regressions
+-   Step 3: SPLM analysis
+-   Step 4: Permutation
+-   Step 5: Simple/complex comparison
+-   Step 6: Ratio analysis
+-   Step 7: Percent saturation
 
 ## Step 1: Load data and packages
 
-```{r}
+```{r setup, include = FALSE}
 #Load packages
 library(tidyverse)
 library(randomForest)
@@ -57,9 +65,9 @@ log_vars <- c("SurfaceArea_km2", "MeanDepth_m",
 set.seed(47)
 ```
 
-## Step 2: Calculate surf/bot values
+## Step 2: Format data for regressions
 
-```{r}
+```{r format}
 layer_plot_data <- layer_sum %>%
   mutate(density = water.density(Temp_C)) %>%
   group_by(LakeID, Date) %>%
@@ -104,7 +112,7 @@ metadata_by_lake %>%
 
 ## Step 3: SPLM analysis
 
-```{r}
+```{r splm}
 all <- layer_plot_data  %>%
   left_join(metadata_by_lake) %>%
   mutate(TrophicStatus = ifelse(grepl(" AND ", TrophicStatus),
@@ -187,32 +195,11 @@ ch4_plot
 ggsave(ch4_plot, dpi = 300, 
        filename = "../Figures/CH4 drivers - surf bot - splmRF.jpeg", 
        width = 7, height = 6)
-
-all_consistent <- all %>%
-  ungroup() %>%
-  select(all_of(c("value", "name","Layer","LakeID", vars))) %>%
-  drop_na() %>%
-  group_by(LakeID) %>%
-  filter(sum(Layer == "bot" & name == "CO[2]") >= 1,
-         sum(Layer == "bot" & name == "CH[4]") >= 1,
-         sum(Layer == "surf" & name == "CO[2]") >= 1,
-         sum(Layer == "surf" & name == "CH[4]") >= 1)
-
-co2_plot <- generate_plot_splmRF(all = all_consistent, vars = vars, var_names = var_names, 
-                                gas_name = "CO[2]", log_vars = log_vars)
-ggsave(co2_plot, dpi = 300, 
-       filename = "../Figures/CO2 drivers - surf bot - splmRF - consistent.jpeg", 
-       width = 6, height = 5)
-
-ch4_plot <- generate_plot_splmRF(all_consistent, vars, var_names, "CH[4]", log_vars)
-ggsave(ch4_plot, dpi = 300, 
-       filename = "../Figures/CH4 drivers - surf bot - splmRF - consistent.jpeg", 
-       width = 6, height = 5)
 ```
 
 ## Step 4: Permutation
 
-```{r}
+```{r permutation}
 co2_plot <- generate_plot_permutation(all = all, vars = vars, 
                                       var_names = var_names, gas_name = "CO[2]",
                                       log_vars = log_vars, reps = 10)
@@ -230,6 +217,16 @@ ggsave(ch4_plot, dpi = 300,
        width = 7, height = 6)
 
 #Consistent
+all_consistent <- all %>%
+  ungroup() %>%
+  select(all_of(c("value", "name","Layer","LakeID", vars))) %>%
+  drop_na() %>%
+  group_by(LakeID) %>%
+  filter(sum(Layer == "bot" & name == "CO[2]") >= 1,
+         sum(Layer == "bot" & name == "CH[4]") >= 1,
+         sum(Layer == "surf" & name == "CO[2]") >= 1,
+         sum(Layer == "surf" & name == "CH[4]") >= 1)
+
 co2_plot <- generate_plot_permutation(all = all_consistent, vars = vars, 
                                       var_names = var_names, gas_name = "CO[2]",
                                       log_vars = log_vars, reps = 10)
@@ -249,21 +246,21 @@ ggsave(ch4_plot, dpi = 300,
 
 ## Step 5: Simple/complex comparison
 
-```{r}
+```{r simple_complex}
 vars_simple <- c("SurfaceArea_km2", 
           "Osgood",
           "TrophicStatus",
           "Absolute_latitude")
 
-s <- comp_two_rf_permutation(all, vars_simple, vars, gas_name, 
-                             layer_names, log_vars,reps = 10)
+s <- comp_two_rf_permutation(all, vars_simple, vars, 
+                             log_vars,reps = 10)
 
 ggsave(s, dpi = 300, filename = "../Figures/Model comparison - rmse comb imp - permutation.jpeg", width = 6, height = 5)
 ```
 
 ## Step 6: Ratio analysis
 
-```{r}
+```{r ratio}
 epi_hypo <- layer_sum %>%
   select(-Depth_m) %>%
   pivot_longer(cols = CH4_umolL:buoyancy_frequency, 
@@ -312,7 +309,7 @@ ggsave(comb_plot, dpi = 300,
 
 ## Step 7: Percent saturation
 
-```{r}
+```{r pSat}
 all_pSat <- all %>%
   mutate(
     month = month(as.Date(paste0(year,"-01-01")) + days(round(yday, 0)-1)),

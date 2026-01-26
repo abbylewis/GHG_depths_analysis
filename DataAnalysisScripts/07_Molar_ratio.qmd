@@ -1,16 +1,20 @@
 ---
-title: "GWP"
+title: "Molar concentrations"
 format: html
 editor: visual
 ---
 
+This file plots molar concentrations of both gases.
+
 ## Table of contents
 
--   
+-   Step 1: Load data and packages
+-   Step 2: Format data
+-   Step 3: Plot molar concentrations
 
 ## Step 1: Load data and packages
 
-```{r}
+```{r setup, include = FALSE}
 #Load packages
 library(tidyverse)
 library(ggridges)
@@ -23,8 +27,10 @@ metadata <- read_delim("https://pasta.lternet.edu/package/data/eml/edi/2220/5/81
 layer_sum <- read_csv("../CompiledData/layer_sum_not_mean.csv")
 ```
 
+## Step 2: Format data
+
 ```{r}
-gwp_data <- layer_sum %>%
+formatted_data <- layer_sum %>%
   group_by(LakeID, Date) %>%
   mutate(Oxygen = median(DO_mgL[Layer == "bot"], na.rm = T)) %>%
   group_by(LakeID, Layer, Date) %>%
@@ -33,10 +39,10 @@ gwp_data <- layer_sum %>%
             Oxygen = median(Oxygen, na.rm = T))
 ```
 
-Molar concentrations
+## Step 3: Plot molar concentrations
 
 ```{r}
-tot <- gwp_data %>% 
+tot <- formatted_data %>% 
   mutate(total_umolL = CH4_umolL + CO2_umolL,
          ratio_ch4_co2 = CH4_umolL/CO2_umolL) %>%
   filter(!is.na(Layer), !is.na(ratio_ch4_co2), !Oxygen > 15,
@@ -63,7 +69,7 @@ tot <- gwp_data %>%
         legend.title = element_text(margin = margin(r = 15, unit = "pt")))
 
 #Including DO > 15
-tot_full <- gwp_data %>% 
+tot_full <- formatted_data %>% 
   mutate(total_umolL = CH4_umolL + CO2_umolL,
          ratio_ch4_co2 = CH4_umolL/CO2_umolL) %>%
   filter(!is.na(Layer), !is.na(ratio_ch4_co2),
@@ -89,7 +95,7 @@ tot_full <- gwp_data %>%
         legend.position = "bottom",
         legend.title = element_text(margin = margin(r = 15, unit = "pt")))
 
-medians <- gwp_data %>% 
+medians <- formatted_data %>% 
   mutate(total_umolL = CH4_umolL + CO2_umolL,
          ratio_ch4_co2 = CH4_umolL/CO2_umolL,
          Layer = case_match(Layer,
@@ -101,7 +107,7 @@ medians <- gwp_data %>%
   mutate(label = paste0("Median: ", round(median), " ~mu", "*M"),
          y = c(0.62, 0.5))
 
-tot_density <- gwp_data %>% 
+tot_density <- formatted_data %>% 
   mutate(total_umolL = CH4_umolL + CO2_umolL, 
          ratio_ch4_co2 = CH4_umolL/CO2_umolL,
          Layer = case_match(Layer,

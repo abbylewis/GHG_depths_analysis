@@ -4,7 +4,7 @@ format: html
 editor: visual
 ---
 
-This file creates summary boxplots for the Supplemental Information
+This file creates summary boxplots for the Supplemental Information.
 
 ## Table of contents
 

@@ -1,8 +1,8 @@
+# Load necessary functions
 library(sf)
 library(spmodel)
 library(ranger)
 library(ggtext)
-
 source(here::here("DataAnalysisScripts","R", "pseudo_log_breaks.R"))
 
 generate_plot_splmRF <- function(all, vars, var_names, gas_name, log_vars, pSat = F){

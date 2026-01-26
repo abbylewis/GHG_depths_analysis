@@ -1,5 +1,17 @@
 source(here::here("DataAnalysisScripts","R", "pseudo_log_breaks.R"))
 
+#' Plot drivers of gas concentrations or saturation
+#'
+#' @param all Dataframe of focal data and drivers
+#' @param vars Driver variables
+#' @param var_names Variable names for figure
+#' @param gas_name Which gas to analyze ('CH[4]' or 'CO[2]')
+#' @param log_vars Which variables should be log transformed
+#' @param pSat Are we plotting gas saturation? (changes axis label)
+#' @param reps How many replications (permutation approach)
+#'
+#' @returns Drivers figure
+#' 
 generate_plot_permutation <- function(all, vars, var_names, gas_name, log_vars, 
                                       pSat = F, reps = 100){
   
