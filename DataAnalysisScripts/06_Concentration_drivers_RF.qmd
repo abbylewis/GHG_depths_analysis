@@ -184,9 +184,9 @@ vars <- c(
   "TP_ugL_mean",
   "Temp_C",
   "Absolute_latitude",
-  "Latitude",
-  "Longitude",
-  "LakeID"
+  "Latitude", # Not used as a driver in permutation approach
+  "Longitude", # Not used as a driver in permutation approach
+  "LakeID" # Not used as a driver in permutation approach
 )
 
 log_select <- log_vars[log_vars %in% vars]
@@ -262,7 +262,7 @@ for_corrplot <- for_cor %>%
   na.omit()
 
 col <- colorRampPalette(rev(c("#BB4444", "#EE9988", "#FFFFFF", "#77AADD", "#4477AA")))
-M <- cor(for_ggpairs, method = "spearman")
+M <- cor(for_corrplot, method = "spearman")
 
 jpeg("../Figures/corrplot.png", width = 6.5, height = 6.5, res = 300, units = "in")
 corrplot::corrplot(M,

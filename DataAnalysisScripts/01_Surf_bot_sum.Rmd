@@ -206,23 +206,12 @@ layer_sum_not_mean <- cleaned_data %>%
 
 write_csv(layer_sum_not_mean, "../CompiledData/layer_sum_not_mean.csv")
 
+#Stats for MS
 layer_sum_stats <- layer_sum_not_mean %>%
   left_join(metadata)
 
 median(layer_sum_stats$Depth_m[layer_sum_stats$Layer == "surf"])
-sd(layer_sum_stats$Depth_m[layer_sum_stats$Layer == "surf"])
-max(layer_sum_stats$Depth_m[layer_sum_stats$Layer == "surf"])
 median(
-  layer_sum_stats$Depth_m[layer_sum_stats$Layer == "bot"] /
-    layer_sum_stats$MaximumDepth_m[layer_sum_stats$Layer == "bot"],
-  na.rm = T
-)
-sd(
-  layer_sum_stats$Depth_m[layer_sum_stats$Layer == "bot"] /
-    layer_sum_stats$MaximumDepth_m[layer_sum_stats$Layer == "bot"],
-  na.rm = T
-)
-min(
   layer_sum_stats$Depth_m[layer_sum_stats$Layer == "bot"] /
     layer_sum_stats$MaximumDepth_m[layer_sum_stats$Layer == "bot"],
   na.rm = T

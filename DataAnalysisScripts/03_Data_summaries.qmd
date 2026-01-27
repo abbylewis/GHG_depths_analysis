@@ -62,28 +62,44 @@ unique_profiles %>%
   summarize(n = length(unique(Date))) %>%
   group_by(LakeID) %>%
   summarize(median = median(n)) %>%
+  ungroup() %>%
   summarize(median(median))
+
+# Median of 4 CO2 and 2 CH4 measurements
+data %>%
+  group_by(LakeID) %>%
+  summarize(
+    n_co2 = length(unique(Date[!is.na(CO2_umolL)])),
+    n_ch4 = length(unique(Date[!is.na(CH4_umolL)]))
+  ) %>%
+  ungroup() %>%
+  summarize(
+    across(c(n_co2, n_ch4), \(x) median(x[x != 0]))
+  )
+
+# Lakes with one measurement
+data %>%
+  group_by(LakeID) %>%
+  summarize(
+    n_co2 = length(unique(Date[!is.na(CO2_umolL)])),
+    n_ch4 = length(unique(Date[!is.na(CH4_umolL)]))
+  ) %>%
+  ungroup() %>%
+  summarize(
+    across(c(n_co2, n_ch4), \(x) sum(x == 1))
+  )
+
+unique_profiles %>%
+  group_by(LakeID) %>%
+  summarize(n = length(unique(Date))) %>%
+  filter(n == 1) %>%
+  summarize(n())
 ```
 
 ## Step 3: Concentrations in surface vs. bottom waters
 
 ```{r surf_bot}
 layer_sum <- read_csv("../CompiledData/layer_sum_not_mean.csv")
-
-layer_sum %>%
-  select(LakeID, Source, Date, Layer, CH4_umolL, CO2_umolL) %>%
-  pivot_longer(c(CH4_umolL, CO2_umolL)) %>%
-  pivot_wider(names_from = Layer, values_from = value) %>%
-  filter(
-    !is.na(surf),
-    !is.na(bot)
-  ) %>%
-  group_by(name) %>%
-  summarize(
-    mean_surf = mean(surf),
-    mean_bot = mean(bot),
-    ratio = mean_bot / mean_surf
-  )
 
 layer_sum %>%
   select(LakeID, Source, Date, Layer, CH4_umolL, CO2_umolL) %>%
@@ -103,22 +119,15 @@ max(data$CH4_umolL[!data$LakeName == "untersee"], na.rm = T)
 max(data$CO2_umolL, na.rm = T)
 max(data$CO2_umolL[!data$LakeName %in% c("nyos", "monoun")], na.rm = T)
 
-data2 <- data %>%
-  filter(!LakeName %in% c("nyos", "monoun"))
-
 epi_hypo_data <- layer_sum %>%
   group_by(LakeID, Date, Source) %>%
   mutate(
     Oxygen = ifelse(sum(!is.na(DO_mgL)) >= 1,
       mean(DO_mgL[Layer == "bot"], na.rm = T),
       NA
-    ),
-    surf_temp = ifelse(sum(!is.na(Temp_C)) >= 1,
-      mean(Temp_C[Layer == "surf"], na.rm = T),
-      NA
     )
   ) %>%
-  select(LakeID, Date, Layer, CO2_umolL, CH4_umolL, Oxygen, surf_temp, buoyancy_frequency) %>%
+  select(LakeID, Date, Layer, CO2_umolL, CH4_umolL, Oxygen) %>%
   pivot_longer(
     cols = c(CO2_umolL, CH4_umolL), names_to = "Gas",
     values_to = "Conc"
@@ -136,18 +145,10 @@ inverse_ch4 <- epi_hypo_data %>%
   filter(surf > bot)
 length(unique(inverse_ch4$LakeID))
 
-inverse_depths <- inverse_ch4 %>%
-  ungroup() %>%
-  select(LakeID) %>%
-  distinct() %>%
-  left_join(metadata %>%
-    group_by(LakeID) %>%
-    summarize(MaximumDepth_m = mean(MaximumDepth_m, na.rm = T)))
-
-summary_data <- epi_hypo_data %>%
+epi_hypo_data %>%
   mutate(DO_level = ifelse(Oxygen > 1, "Oxic", "Anoxic")) %>%
   filter(!is.na(DO_level)) %>%
   pivot_longer(c(surf, bot), values_to = "Conc", names_to = "Layer") %>%
-  group_by(Layer, Gas, DO_level) %>%
-  summarize(u = mean(Conc, na.rm = T))
+  group_by(Gas, Layer, DO_level) %>%
+  summarize(med = median(Conc, na.rm = T))
 ```
