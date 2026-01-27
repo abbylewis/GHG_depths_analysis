@@ -9,7 +9,7 @@ This repository contains code used in a manuscript about the drivers of greenhou
 
 ## Data
 
-All data are sourced directly from the GHG-depths dataset (<https://doi.org/10.6073/pasta/2b72b89bbfbb3da0e198f392a9cbad18>; Rabaey et al. 2026). GHG-depths is a geographically extensive dataset of depth-profile CO~2~ and CH~4~ concentrations, along with environmental drivers, from 522 lakes. These data span 7 continents and 38 countries, with a total of 2,558 discrete sampling events. The GHG-depths dataset is released for noncommercial use only and is licensed under a Creative Commons Attribution 4.0 International License (CC BY 4.0). All publications that use GHG-depths are encouraged to appropriately cite the data and corresponding paper, and to contact and collaborate with the site-specific data providers for expertise in interpreting data when appropriate.
+All data are sourced directly from the GHG-depths dataset (<https://doi.org/10.6073/pasta/2b72b89bbfbb3da0e198f392a9cbad18>; Rabaey et al. 2026). GHG-depths is a geographically extensive dataset of depth-profile CO<sub>2</sub> and CH<sub>4</sub> concentrations, along with environmental drivers, from 522 lakes. These data span 7 continents and 38 countries, with a total of 2,558 discrete sampling events. The GHG-depths dataset is released for noncommercial use only and is licensed under a Creative Commons Attribution 4.0 International License (CC BY 4.0). All publications that use GHG-depths are encouraged to appropriately cite the data and corresponding paper, and to contact and collaborate with the site-specific data providers for expertise in interpreting data when appropriate.
 
 ## File structure
 
