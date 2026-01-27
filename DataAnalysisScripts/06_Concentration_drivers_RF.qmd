@@ -76,7 +76,7 @@ layer_plot_data <- layer_sum %>%
                                  density[Layer == "surf"]),
                            NA)) %>%
   pivot_longer(cols = CO2_umolL:CH4_umolL) %>%
-  group_by(LakeID, name, Layer) %>%
+  group_by(LakeID, name, Layer, Date) %>%
   filter(!is.na(value)) %>%
   mutate(value = mean(value, na.rm = T),
         yday = yday(Date),
@@ -106,13 +106,6 @@ metadata_by_lake <- metadata %>%
                      LakeType), 
                    \(x) paste(unique(x), collapse = " AND ")))
 
-metadata_by_lake %>%
-  filter(grepl(" AND ", TrophicStatus))
-```
-
-## Step 3: SPLM analysis
-
-```{r splm}
 all <- layer_plot_data  %>%
   left_join(metadata_by_lake) %>%
   mutate(TrophicStatus = ifelse(grepl(" AND ", TrophicStatus),
@@ -152,37 +145,91 @@ vars <- c("DO_mgL",
           "Osgood",
           "TP_ugL_mean",
           "Temp_C",
-          "Absolute_latitude"
-          )
-
-log_select <- log_vars[log_vars %in% vars]
-  
-### SET UP ###
-for_cor <- all %>% 
-  filter(name == "CH[4]",
-         Layer == "bot",
-         if_all(all_of(log_select), \(x) x>0)
-         ) %>%
-  ungroup() %>%
-  mutate(across(all_of(log_select), log),
-         mutate(across(where(is.character), as.factor))) %>%
-  select(all_of(c("value", vars))) %>%
-  na.omit()
-
-cor(for_cor  %>%
-      ungroup() %>%
-      select(where(is.numeric)) %>%
-      select(any_of(vars)),
-    use = "pairwise.complete.obs",
-    method = "spearman")
-
-vars <- c(vars,
+          "Absolute_latitude",
           "Latitude",
           "Longitude",
           "LakeID")
 
-#New format
+log_select <- log_vars[log_vars %in% vars]
 
+for_cor <- all %>% 
+  filter(if_all(all_of(log_select), \(x) x>0)
+         ) %>%
+  ungroup() %>%
+  mutate(across(all_of(log_select), log),
+         mutate(across(where(is.character), as.factor))) %>%
+  select(all_of(c("value", vars, "name", "Layer", "LakeID", "Date", "Source"))) %>%
+  na.omit() %>%
+  ungroup() %>%
+  pivot_wider(names_from = Layer, values_from = c(value, DO_mgL, Temp_C)) %>%
+  pivot_wider(names_from = name, values_from = c(value_surf, value_bot)) %>%
+  select(where(is.numeric),
+         -Longitude, 
+         -Latitude) 
+
+dens_plots <- for_cor %>%
+  pivot_longer(everything()) %>%
+  mutate(name = factor(name,
+                       levels = c("DO_mgL_bot", "DO_mgL_surf", "SurfaceArea_km2", "Osgood",
+                                  "TP_ugL_mean", "Temp_C_bot", "Temp_C_surf",
+                                  "Absolute_latitude",
+                                  "value_surf_CH[4]", "value_bot_CH[4]", "value_surf_CO[2]"
+                                  ,"value_bot_CO[2]"),
+                       labels = c("Bottom~DO~(mg~L^-1)", "Surface~DO~(mg~L^-1)", "SA~(log~km^2)",
+                                  "Osgood~index~(log)",
+                                  "TP~(log~µg~L^-1)", "Bottom~temp~(ºC)", "Surface~temp~(ºC)",
+                                  "Abs.~latitude",
+                                  "Surface~CH[4]~(log~µM)", " Bottom~CH[4]~(log~µM)",
+                                  "Surface~CO[2]~(log~µM)",
+                                  "Bottom~CO[2]~(log~µM)"))) %>%
+  ggplot(aes(x = value)) +
+  geom_density()+
+  facet_wrap(~name, scales = "free", labeller = "label_parsed")+
+  egg::theme_article()
+
+ggsave("../Figures/dens_plots.png", dens_plots, width = 7, height = 4.5, dpi = 300)
+
+cor(for_cor,
+    use = "pairwise.complete.obs",
+    method = "spearman")
+
+for_corrplot <- for_cor %>%
+  mutate(row = row_number()) %>%
+  pivot_longer(-row) %>%
+  filter(!grepl("value", name)) %>%
+  mutate(name = factor(name,
+                       levels = c("DO_mgL_bot", "DO_mgL_surf", "SurfaceArea_km2", "Osgood",
+                                  "TP_ugL_mean", "Temp_C_bot", "Temp_C_surf",
+                                  "Absolute_latitude"),
+                       labels = c(":Bottom~DO~(mg~L^-1)", ":Surface~DO~(mg~L^-1)", ":SA~(log~km^2)",
+                                  ":Osgood~index~(log)",
+                                  ":TP~(log~µg~L^-1)", ":Bottom~temp~(ºC)", ":Surface~temp~(ºC)",
+                                  ":Abs.~latitude"))) %>%
+  pivot_wider() %>%
+  select(-row) %>%
+  na.omit()
+
+col <- colorRampPalette(rev(c("#BB4444", "#EE9988", "#FFFFFF", "#77AADD", "#4477AA")))
+M<-cor(for_ggpairs, method = "spearman")
+
+jpeg("../Figures/corrplot.png", width = 6.5, height = 6.5, res = 300, units = "in")
+corrplot::corrplot(M, method="color", col=col(200),  
+         type="upper", order="hclust", 
+         addCoef.col = "black", # Add coefficient of correlation
+         tl.col="black", tl.srt=45, #Text label color and rotation
+         # Combine with significance
+         sig.level = 0.01, insig = "blank", 
+         # hide correlation coefficient on the principal diagonal
+         diag=FALSE,
+         mar = c(0,0,0,0)
+         )
+dev.off()
+```
+
+## Step 3: SPLM analysis
+
+```{r splm}
+#Run regressions
 co2_plot <- generate_plot_splmRF(all = all, vars = vars, var_names = var_names, 
                                 gas_name = "CO[2]", log_vars = log_vars)
 co2_plot
@@ -200,6 +247,7 @@ ggsave(ch4_plot, dpi = 300,
 ## Step 4: Permutation
 
 ```{r permutation}
+#Run regressions
 co2_plot <- generate_plot_permutation(all = all, vars = vars, 
                                       var_names = var_names, gas_name = "CO[2]",
                                       log_vars = log_vars, reps = 10)
