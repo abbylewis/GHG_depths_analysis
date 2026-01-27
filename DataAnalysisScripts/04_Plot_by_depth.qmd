@@ -17,16 +17,16 @@ This file creates figures that summarize concentrations and solubility by depth
 ## Step 1: Load data and packages
 
 ```{r setup, include=FALSE}
-#Load packages
+# Load packages
 library(tidyverse)
 require(marelac)
 library(rMR)
-#might take a minute because this also loads noaa data
-source("R/equilibrium_calcs.R") 
+# might take a minute because this also loads noaa data
+source("R/equilibrium_calcs.R")
 
-#Load data
+# Load data
 data <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/2220/5/8553f79eeea9a6f722fc50d733ca9a74") %>%
-  filter(Focal_site) #Cleaned
+  filter(Focal_site) # Cleaned
 metadata <- read_delim("https://pasta.lternet.edu/package/data/eml/edi/2220/5/81f003749ad039837475571390b20190") %>%
   filter(Focal_site)
 layer_sum <- read_csv("../CompiledData/layer_sum_not_mean.csv")
@@ -39,52 +39,67 @@ full <- data %>%
   left_join(metadata) %>%
   filter(!is.na(MaximumDepth_m)) %>%
   pivot_longer(cols = c(CO2_umolL, CH4_umolL), names_to = "Gas", values_to = "Concentration (µmol/L)") %>%
-  mutate(Gas = ifelse(Gas == "CO2_umolL", 
-                      "CO[2]", 
-                      "CH[4]")) %>%
-  filter(Depth_m/MaximumDepth_m <=1,
-         `Concentration (µmol/L)` >= 0)
+  mutate(Gas = ifelse(Gas == "CO2_umolL",
+    "CO[2]",
+    "CH[4]"
+  )) %>%
+  filter(
+    Depth_m / MaximumDepth_m <= 1,
+    `Concentration (µmol/L)` >= 0
+  )
 
 min <- min(full$`Concentration (µmol/L)`, na.rm = T)
 max <- max(full$`Concentration (µmol/L)`, na.rm = T)
 min_do <- min(full$DO_mgL, na.rm = T)
 max_do <- max(full$DO_mgL, na.rm = T)
 
-points <- full %>% 
+points <- full %>%
   group_by(Gas) %>%
-  mutate(Gas_lab = paste0(Gas, "~'(", sum(!is.na(`Concentration (µmol/L)`)), " samples; ", length(unique(LakeID[!is.na(`Concentration (µmol/L)`)]))," lakes)'")) %>%
-  ggplot(aes(x = Depth_m/MaximumDepth_m, y = `Concentration (µmol/L)`))+
-  geom_point(aes(color = DO_mgL), shape = 21, size = 0.8, 
-             data = . %>% filter(is.na(DO_mgL)))+
-  geom_point(aes(color = DO_mgL), shape = 21, size = 0.8, 
-             data = . %>% filter(!is.na(DO_mgL)))+
-  ggh4x::facet_wrap2(~Gas_lab, labeller = label_parsed, nrow = 1, scales = "free")+
+  mutate(Gas_lab = paste0(Gas, "~'(", sum(!is.na(`Concentration (µmol/L)`)), " samples; ", length(unique(LakeID[!is.na(`Concentration (µmol/L)`)])), " lakes)'")) %>%
+  ggplot(aes(x = Depth_m / MaximumDepth_m, y = `Concentration (µmol/L)`)) +
+  geom_point(aes(color = DO_mgL),
+    shape = 21, size = 0.8,
+    data = . %>% filter(is.na(DO_mgL))
+  ) +
+  geom_point(aes(color = DO_mgL),
+    shape = 21, size = 0.8,
+    data = . %>% filter(!is.na(DO_mgL))
+  ) +
+  ggh4x::facet_wrap2(~Gas_lab, labeller = label_parsed, nrow = 1, scales = "free") +
   ggh4x::facetted_pos_scales(y = list(
-      scale_y_continuous(trans = scales::pseudo_log_trans(0.001, 100000),
-                         labels = scales::label_comma(drop0trailing = T),
-                         breaks = c(0,0.1,10,1000)),
-      scale_y_continuous(trans = scales::pseudo_log_trans(0.1, 1000000),
-                         labels = scales::label_comma(drop0trailing = T),
-                         breaks = c(0,10,1000,100000))
-    )) +
+    scale_y_continuous(
+      trans = scales::pseudo_log_trans(0.001, 100000),
+      labels = scales::label_comma(drop0trailing = T),
+      breaks = c(0, 0.1, 10, 1000)
+    ),
+    scale_y_continuous(
+      trans = scales::pseudo_log_trans(0.1, 1000000),
+      labels = scales::label_comma(drop0trailing = T),
+      breaks = c(0, 10, 1000, 100000)
+    )
+  )) +
   scale_color_gradient2(
     limits = c(min_do, 10), # Set the upper limit
-    oob = scales::squish,   # Clamp values outside limits
+    oob = scales::squish, # Clamp values outside limits
     low = "#A30003",
     mid = "#ae54ad",
     high = "#33AAEB",
     midpoint = 5,
-    breaks = c(0, 2.5, 5, 7.5, 10),        # Define where the ticks should be
+    breaks = c(0, 2.5, 5, 7.5, 10), # Define where the ticks should be
     labels = c("0", "2.5", "5.0", "7.5", "10+"),
     na.value = "grey80"
   ) +
   egg::theme_article() +
-  labs(y = expression("Concentration (µM)"),
-       x = "Sample depth (fraction of lake maximum depth)",
-       color = expression("DO mg L"^-1)) +
-  theme(legend.position = "right",
-        panel.grid.major = element_line(color = "grey90", size = 0.5),
-        panel.grid.minor = element_line(color = "grey95", size = 0.25))
+  labs(
+    y = expression("Concentration (µM)"),
+    x = "Sample depth (fraction of lake maximum depth)",
+    color = expression("DO mg L"^-1)
+  ) +
+  theme(
+    legend.position = "right",
+    panel.grid.major = element_line(color = "grey90", size = 0.5),
+    panel.grid.minor = element_line(color = "grey95", size = 0.25)
+  )
 ```
 
 ## Step 3: Surf-bot comparison
@@ -93,84 +108,113 @@ points <- full %>%
 epi_hypo_data <- layer_sum %>%
   group_by(LakeID, Date, Source) %>%
   mutate(Oxygen = ifelse(sum(!is.na(DO_mgL)) >= 1,
-                         mean(DO_mgL[Layer == "bot"], na.rm = T), 
-                         NA)) %>%
+    mean(DO_mgL[Layer == "bot"], na.rm = T),
+    NA
+  )) %>%
   select(LakeID, Date, Layer, CO2_umolL, CH4_umolL, Oxygen) %>%
-  pivot_longer(cols = c(CO2_umolL, CH4_umolL), names_to = "Gas", 
-               values_to = "Conc") %>% filter(Conc >= 0) %>%
+  pivot_longer(
+    cols = c(CO2_umolL, CH4_umolL), names_to = "Gas",
+    values_to = "Conc"
+  ) %>%
+  filter(Conc >= 0) %>%
   pivot_wider(names_from = Layer, values_from = c(Conc)) %>%
-  mutate(Gas = case_match(Gas,
-                          "CH4_umolL"~"CH[4]",
-                          "CO2_umolL"~"CO[2]")) 
+  mutate(Gas = case_match(
+    Gas,
+    "CH4_umolL" ~ "CH[4]",
+    "CO2_umolL" ~ "CO[2]"
+  ))
 
-ch4_rho = cor.test(epi_hypo_data$bot[epi_hypo_data$Gas == "CH[4]"], 
-         epi_hypo_data$surf[epi_hypo_data$Gas == "CH[4]"],
-         method = "spearman")$estimate
+ch4_rho <- cor.test(epi_hypo_data$bot[epi_hypo_data$Gas == "CH[4]"],
+  epi_hypo_data$surf[epi_hypo_data$Gas == "CH[4]"],
+  method = "spearman"
+)$estimate
 
-co2_rho = cor.test(epi_hypo_data$bot[epi_hypo_data$Gas == "CO[2]"], 
-         epi_hypo_data$surf[epi_hypo_data$Gas == "CO[2]"],
-         method = "spearman")$estimate
+co2_rho <- cor.test(epi_hypo_data$bot[epi_hypo_data$Gas == "CO[2]"],
+  epi_hypo_data$surf[epi_hypo_data$Gas == "CO[2]"],
+  method = "spearman"
+)$estimate
 
-labels <- epi_hypo_data %>% 
+labels <- epi_hypo_data %>%
   group_by(Gas) %>%
   summarize(Gas_lab = unique(paste0(Gas, "~'(", sum(!is.na(bot)), " paired samples; ", length(unique(LakeID)), " lakes)'"))) %>%
   mutate(rho = ifelse(Gas == "CH[4]", ch4_rho, co2_rho))
 
-epi_hypo <- epi_hypo_data %>% 
+epi_hypo <- epi_hypo_data %>%
   group_by(Gas) %>%
   mutate(Gas_lab = paste0(Gas, "~'(", sum(!is.na(bot)), " paired samples; ", length(unique(LakeID)), " lakes)'")) %>%
   ggplot(aes(x = bot, y = surf, color = Oxygen)) +
   geom_abline(slope = 1) +
-  geom_point(data = .%>% filter(is.na(Oxygen)), 
-             shape = 21, size = 0.8)+
-  geom_point(data = .%>% filter(!is.na(Oxygen)), 
-             shape = 21, size = 0.8)+
-  #scale_x_log10(labels = scales::label_comma(drop0trailing = T)) +
-  #scale_y_log10(labels = scales::label_comma(drop0trailing = T)) +
+  geom_point(
+    data = . %>% filter(is.na(Oxygen)),
+    shape = 21, size = 0.8
+  ) +
+  geom_point(
+    data = . %>% filter(!is.na(Oxygen)),
+    shape = 21, size = 0.8
+  ) +
+  # scale_x_log10(labels = scales::label_comma(drop0trailing = T)) +
+  # scale_y_log10(labels = scales::label_comma(drop0trailing = T)) +
   ggh4x::facet_wrap2(~Gas_lab, labeller = label_parsed, scales = "free") +
   ggh4x::facetted_pos_scales(y = list(
-      scale_y_continuous(trans = scales::pseudo_log_trans(0.001, 100000),
-                         labels = scales::label_comma(drop0trailing = T),
-                         breaks = c(0,0.1,10,1000)),
-      scale_y_continuous(trans = scales::pseudo_log_trans(1, 1000000),
-                         labels = scales::label_comma(drop0trailing = T),
-                         breaks = c(0,10,100,1000, 10000, 100000))
-    ), x = list(
-      scale_x_continuous(trans = scales::pseudo_log_trans(0.001, 100000),
-                         labels = scales::label_comma(drop0trailing = T),
-                         breaks = c(0,0.1,10,1000)),
-      scale_x_continuous(trans = scales::pseudo_log_trans(1, 1000000),
-                         labels = scales::label_comma(drop0trailing = T),
-                         breaks = c(0,10,100, 1000,10000, 100000))
-    )) +
+    scale_y_continuous(
+      trans = scales::pseudo_log_trans(0.001, 100000),
+      labels = scales::label_comma(drop0trailing = T),
+      breaks = c(0, 0.1, 10, 1000)
+    ),
+    scale_y_continuous(
+      trans = scales::pseudo_log_trans(1, 1000000),
+      labels = scales::label_comma(drop0trailing = T),
+      breaks = c(0, 10, 100, 1000, 10000, 100000)
+    )
+  ), x = list(
+    scale_x_continuous(
+      trans = scales::pseudo_log_trans(0.001, 100000),
+      labels = scales::label_comma(drop0trailing = T),
+      breaks = c(0, 0.1, 10, 1000)
+    ),
+    scale_x_continuous(
+      trans = scales::pseudo_log_trans(1, 1000000),
+      labels = scales::label_comma(drop0trailing = T),
+      breaks = c(0, 10, 100, 1000, 10000, 100000)
+    )
+  )) +
   scale_color_gradient2(
     limits = c(min_do, 10), # Set the upper limit
-    oob = scales::squish,   # Clamp values outside limits
+    oob = scales::squish, # Clamp values outside limits
     low = "#A30003",
     mid = "#ae54ad",
     high = "#33AAEB",
     midpoint = 5,
-    breaks = c(0, 2.5, 5, 7.5, 10),        # Define where the ticks should be
+    breaks = c(0, 2.5, 5, 7.5, 10), # Define where the ticks should be
     labels = c("0", "2.5", "5.0", "7.5", "10+"),
     na.value = "grey80"
   ) +
-  labs(y = expression("Surface concentration (µM)"),
-       x = expression("Bottom concentration (µM)"),
-       color = expression("Bottom DO (mg L"^"-1"*")")) +
+  labs(
+    y = expression("Surface concentration (µM)"),
+    x = expression("Bottom concentration (µM)"),
+    color = expression("Bottom DO (mg L"^"-1" * ")")
+  ) +
   egg::theme_article() +
   geom_text(aes(x = -Inf, y = Inf, label = sprintf("rho == %.2f", rho)),
-            parse = TRUE, data = labels, color = "black", hjust = -0.4, vjust = 1.5)+
-  theme(panel.grid.major = element_line(color = "grey90", size = 0.5),
-        panel.grid.minor = element_line(color = "grey95", size = 0.25))
+    parse = TRUE, data = labels, color = "black", hjust = -0.4, vjust = 1.5
+  ) +
+  theme(
+    panel.grid.major = element_line(color = "grey90", size = 0.5),
+    panel.grid.minor = element_line(color = "grey95", size = 0.25)
+  )
 
-comb <- ggpubr::ggarrange(points, epi_hypo, nrow = 2, 
-                  common.legend = T, 
-                  widths = c(3,1,1), legend = "right", 
-                  labels = c("a", "b"), hjust = -3)
+comb <- ggpubr::ggarrange(points, epi_hypo,
+  nrow = 2,
+  common.legend = T,
+  widths = c(3, 1, 1), legend = "right",
+  labels = c("a", "b"), hjust = -3
+)
 
-ggsave(comb, dpi = 300, 
-       filename = "../Figures/DO CO2 and CH4 - surf bot comp.jpeg", 
-       width = 7, height = 5)
+ggsave(comb,
+  dpi = 300,
+  filename = "../Figures/DO CO2 and CH4 - surf bot comp.jpeg",
+  width = 7, height = 5
+)
 ```
 
 ## Step 4: Solubility
@@ -179,12 +223,16 @@ ggsave(comb, dpi = 300,
 epi_hypo_data <- layer_sum %>%
   group_by(LakeID, Date, Source) %>%
   select(LakeID, Date, Layer, CO2_umolL, CH4_umolL, Temp_C) %>%
-  pivot_longer(cols = c(CO2_umolL, CH4_umolL), names_to = "Gas", 
-               values_to = "Conc") %>% 
+  pivot_longer(
+    cols = c(CO2_umolL, CH4_umolL), names_to = "Gas",
+    values_to = "Conc"
+  ) %>%
   filter(!is.na(Conc)) %>%
-  mutate(Gas = case_match(Gas,
-                          "CH4_umolL"~"CH[4]",
-                          "CO2_umolL"~"CO[2]")) 
+  mutate(Gas = case_match(
+    Gas,
+    "CH4_umolL" ~ "CH[4]",
+    "CO2_umolL" ~ "CO[2]"
+  ))
 
 sat <- epi_hypo_data %>%
   filter(!is.na(Temp_C)) %>%
@@ -192,94 +240,124 @@ sat <- epi_hypo_data %>%
     year = year(Date),
     month = month(Date),
     equilibrium = case_when(
-      Gas == "CO[2]"~calc_CO2_equil(Temp_C, year, month),
-      Gas == "CH[4]"~calc_CH4_equil(Temp_C, year, month)
+      Gas == "CO[2]" ~ calc_CO2_equil(Temp_C, year, month),
+      Gas == "CH[4]" ~ calc_CH4_equil(Temp_C, year, month)
     ),
-    pct = Conc/equilibrium * 100
-    ) %>%
+    pct = Conc / equilibrium * 100
+  ) %>%
   filter(!is.na(equilibrium)) %>%
   mutate(Layer = factor(Layer,
-                        levels = c("surf", "bot"),
-                        labels = c("Surface", "Bottom")))
-  
+    levels = c("surf", "bot"),
+    labels = c("Surface", "Bottom")
+  ))
+
 meds <- sat %>%
   group_by(Layer, Gas) %>%
-  summarize(med = signif(median(pct), 2),
-            min = log(min(equilibrium)),
-            max = log(max(equilibrium)),
-            xpos = exp(min + 0.005*(max - min)),
-            Label = paste0("Median: ", 
-                           format(med, scientific = F), 
-                           "% saturation"))
+  summarize(
+    med = signif(median(pct), 2),
+    min = log(min(equilibrium)),
+    max = log(max(equilibrium)),
+    xpos = exp(min + 0.005 * (max - min)),
+    Label = paste0(
+      "Median: ",
+      format(med, scientific = F),
+      "% saturation"
+    )
+  )
 
-sat_fig <- sat  %>%
-  ggplot(aes(x = equilibrium, y = Conc))+
-  geom_point(aes(color = Temp_C), shape = 21, size = 0.7)+
-  geom_label(y = Inf, 
-            aes(x = xpos, label = Label), data = meds,
-            hjust = 0, vjust = 1.5, alpha = 0.6,
-            size = 3)+
-  geom_abline()+
-  scale_y_log10()+
-  scale_x_log10()+
-  scale_color_gradient(low = "#2255dd", high = "#dd2255",
-                       name = "Temperature (ºC)")+
-  ggh4x::facet_grid2(Layer~Gas, scales = "free", 
-                     independent = "all", labeller = label_parsed)+
-  xlab("Equilibrium solubility (µM)")+
-  ylab("Concentration (µM)")+
+sat_fig <- sat %>%
+  ggplot(aes(x = equilibrium, y = Conc)) +
+  geom_point(aes(color = Temp_C), shape = 21, size = 0.7) +
+  geom_label(
+    y = Inf,
+    aes(x = xpos, label = Label), data = meds,
+    hjust = 0, vjust = 1.5, alpha = 0.6,
+    size = 3
+  ) +
+  geom_abline() +
+  scale_y_log10() +
+  scale_x_log10() +
+  scale_color_gradient(
+    low = "#2255dd", high = "#dd2255",
+    name = "Temperature (ºC)"
+  ) +
+  ggh4x::facet_grid2(Layer ~ Gas,
+    scales = "free",
+    independent = "all", labeller = label_parsed
+  ) +
+  xlab("Equilibrium solubility (µM)") +
+  ylab("Concentration (µM)") +
   egg::theme_article() +
-  theme(axis.text.x = element_text(angle = 30, hjust = 1),
-        legend.box.margin = ggplot2::margin(0,0,0,0,unit = "pt"),
-        legend.box.spacing = unit(0,"pt"),
-        legend.position = "bottom")
+  theme(
+    axis.text.x = element_text(angle = 30, hjust = 1),
+    legend.box.margin = ggplot2::margin(0, 0, 0, 0, unit = "pt"),
+    legend.box.spacing = unit(0, "pt"),
+    legend.position = "bottom"
+  )
 
-ggsave(sat_fig, dpi = 300, 
-       filename = "../Figures/Percent_saturation.jpeg", 
-       width = 5, height = 4)
+ggsave(sat_fig,
+  dpi = 300,
+  filename = "../Figures/Percent_saturation.jpeg",
+  width = 5, height = 4
+)
 
-png("../Figures/DO CO2 and CH4 - surf bot sat.png", res = 300, width = 5, height = 5, units  ="in")
+png("../Figures/DO CO2 and CH4 - surf bot sat.png", res = 300, width = 5, height = 5, units = "in")
 sat_meds <- sat %>%
   group_by(Layer, Gas) %>%
   summarize(med = median(pct))
 sat %>%
-  ggplot(aes(y = pct))+
+  ggplot(aes(y = pct)) +
   geom_hline(aes(yintercept = 100)) +
-  geom_density(aes(fill = Layer))+
-  geom_hline(aes(yintercept = med, color = Layer), 
-             linewidth = 1.5, data = sat_meds) +
-  geom_text(aes(x = 0.2, y = ifelse(Gas == "CO[2]", 600000, 80000000), 
-                label = paste0("Median = ", 
-                               scales::label_comma()(signif(med, 2)), 
-                               "%")), 
-            data = sat_meds, hjust = "left")+
-  facet_grid(Gas~Layer, labeller = label_parsed, scales = "free_y")+
+  geom_density(aes(fill = Layer)) +
+  geom_hline(aes(yintercept = med, color = Layer),
+    linewidth = 1.5, data = sat_meds
+  ) +
+  geom_text(
+    aes(
+      x = 0.2, y = ifelse(Gas == "CO[2]", 600000, 80000000),
+      label = paste0(
+        "Median = ",
+        scales::label_comma()(signif(med, 2)),
+        "%"
+      )
+    ),
+    data = sat_meds, hjust = "left"
+  ) +
+  facet_grid(Gas ~ Layer, labeller = label_parsed, scales = "free_y") +
   scale_y_log10(labels = scales::label_comma()) +
-  coord_cartesian(clip = "off")+
-  ylab("Saturation (%)")+
+  coord_cartesian(clip = "off") +
+  ylab("Saturation (%)") +
   xlab("Density") +
   theme_bw() +
-  scale_fill_manual(values = c("#afe2fa", "#5da3d8"))+
-  scale_color_manual(values = colorspace::darken(c("#afe2fa", "#5da3d8"), .3))+
-  egg::theme_article()+
-  scale_x_continuous(expand = expansion(mult = c(0, 0)),
-                     breaks = c(0, 0.25, 0.5, 0.75))+
-  theme(axis.ticks.y = element_blank(),
-        legend.position = "none")
+  scale_fill_manual(values = c("#afe2fa", "#5da3d8")) +
+  scale_color_manual(values = colorspace::darken(c("#afe2fa", "#5da3d8"), .3)) +
+  egg::theme_article() +
+  scale_x_continuous(
+    expand = expansion(mult = c(0, 0)),
+    breaks = c(0, 0.25, 0.5, 0.75)
+  ) +
+  theme(
+    axis.ticks.y = element_blank(),
+    legend.position = "none"
+  )
 dev.off()
 
-#Percent supersaturated
+# Percent supersaturated
 sat %>%
   group_by(Gas) %>%
-  summarize(n = sum(!is.na(pct)),
-            super = sum(!is.na(pct)&pct>100),
-            super_pct = super/n*100)
+  summarize(
+    n = sum(!is.na(pct)),
+    super = sum(!is.na(pct) & pct > 100),
+    super_pct = super / n * 100
+  )
 sat %>%
   group_by(Gas, Layer) %>%
-  summarize(n = sum(!is.na(pct)),
-            super = sum(!is.na(pct)&pct>100),
-            super_pct = super/n*100)
-#Medians
+  summarize(
+    n = sum(!is.na(pct)),
+    super = sum(!is.na(pct) & pct > 100),
+    super_pct = super / n * 100
+  )
+# Medians
 meds
 ```
 
@@ -288,35 +366,46 @@ meds
 ```{r departures}
 sats <- layer_sum %>%
   left_join(metadata) %>%
-  mutate(year = year(Date),
-         month = month(Date),
-         #DO_sat = DO.saturation(DO_mgL, Temp_C, bar.press = 1.013253, bar.units = "atm") * 100,
-         DO_dev = DO_mgL / 32 * 1000 - calc_DO_equil(Temp_C),
-         CO2_dev = CO2_umolL - calc_CO2_equil(Temp_C, year, month),
-         CH4_dev = CH4_umolL - calc_CH4_equil(Temp_C, year, month))
+  mutate(
+    year = year(Date),
+    month = month(Date),
+    # DO_sat = DO.saturation(DO_mgL, Temp_C, bar.press = 1.013253, bar.units = "atm") * 100,
+    DO_dev = DO_mgL / 32 * 1000 - calc_DO_equil(Temp_C),
+    CO2_dev = CO2_umolL - calc_CO2_equil(Temp_C, year, month),
+    CH4_dev = CH4_umolL - calc_CH4_equil(Temp_C, year, month)
+  )
 
-jpeg("../Figures/Saturation departure.png", res = 300, width = 5, height = 3, 
-     units = "in")
+jpeg("../Figures/Saturation departure.png",
+  res = 300, width = 5, height = 3,
+  units = "in"
+)
 sats %>%
-  mutate(Layer= factor(Layer,
-                       levels = c("surf","bot"),
-                       labels = c("Surface", "Bottom"))) %>%
-  filter(!is.na(CO2_dev),
-         CO2_dev < 2000,
-         CO2_umolL >0) %>%
-  ggplot(aes(y = DO_dev, x = CO2_dev, color = DO_mgL))+
-  geom_hline(yintercept = 0, color = "grey70")+
-  geom_vline(xintercept = 0, color = "grey70")+
-  geom_point(shape = 21)+
-  geom_abline(slope = -1, color = "black", size = 1.5)+
-  facet_wrap(~Layer)+
-  xlab(expression(CO[2]~"departure (µM)"))+
-  ylab("DO departure (µM)")+
-  egg::theme_article()+
-  scale_color_gradientn(colors = c("red","pink","blue","darkblue"), 
-                        values = c(0, .1, .6, 1),
-                        name = "DO (mg/L)")+
-  theme(panel.grid.major = element_line(color = "grey90", size = 0.5),
-        panel.grid.minor = element_line(color = "grey95", size = 0.25))
+  mutate(Layer = factor(Layer,
+    levels = c("surf", "bot"),
+    labels = c("Surface", "Bottom")
+  )) %>%
+  filter(
+    !is.na(CO2_dev),
+    CO2_dev < 2000,
+    CO2_umolL > 0
+  ) %>%
+  ggplot(aes(y = DO_dev, x = CO2_dev, color = DO_mgL)) +
+  geom_hline(yintercept = 0, color = "grey70") +
+  geom_vline(xintercept = 0, color = "grey70") +
+  geom_point(shape = 21) +
+  geom_abline(slope = -1, color = "black", size = 1.5) +
+  facet_wrap(~Layer) +
+  xlab(expression(CO[2] ~ "departure (µM)")) +
+  ylab("DO departure (µM)") +
+  egg::theme_article() +
+  scale_color_gradientn(
+    colors = c("red", "pink", "blue", "darkblue"),
+    values = c(0, .1, .6, 1),
+    name = "DO (mg/L)"
+  ) +
+  theme(
+    panel.grid.major = element_line(color = "grey90", size = 0.5),
+    panel.grid.minor = element_line(color = "grey95", size = 0.25)
+  )
 dev.off()
 ```

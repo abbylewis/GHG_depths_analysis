@@ -17,20 +17,20 @@ Calculate basic summary stats and create map (Figure 1).
 ## Step 1: Load packages and data
 
 ```{r setup, include = FALSE}
-#Load packages
+# Load packages
 library(tidyverse)
 library(rnaturalearth)
 library(rnaturalearthdata)
-#remotes::install_github("ropensci/rnaturalearthhires")
+# remotes::install_github("ropensci/rnaturalearthhires")
 library(rnaturalearthhires)
-library(ggspatial) #annotation_scale
-library(lwgeom) #st_transform_proj
+library(ggspatial) # annotation_scale
+library(lwgeom) # st_transform_proj
 library(sf)
-library(cowplot) #ggdraw
+library(cowplot) # ggdraw
 
-#Load data
+# Load data
 data <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/2220/5/ca2482ef3c43f053ae13cdf2bf5ba7a8") %>%
-  filter(Focal_site) #Not cleaned
+  filter(Focal_site) # Not cleaned
 metadata <- read_delim("https://pasta.lternet.edu/package/data/eml/edi/2220/5/81f003749ad039837475571390b20190") %>%
   filter(Focal_site)
 layer_sum <- read_csv("../CompiledData/layer_sum_not_mean.csv")
@@ -39,115 +39,151 @@ layer_sum <- read_csv("../CompiledData/layer_sum_not_mean.csv")
 ## Step 2: Create subplots for key summary stats
 
 ```{r summary_subplots}
-depth <- metadata %>% filter(Focal_site == TRUE) %>%
+depth <- metadata %>%
+  filter(Focal_site == TRUE) %>%
   group_by(LakeID) %>%
   summarize(MaximumDepth_m = mean(MaximumDepth_m, na.rm = T)) %>%
-  ggplot(aes(x = MaximumDepth_m))+
-  geom_density()+
-  scale_x_log10(n.breaks = 5)+
-  scale_x_log10(breaks = c(1, 10, 100, 1000), 
-                labels = c("1", "10", "100","1,000"))+
-  theme_bw()+
+  ggplot(aes(x = MaximumDepth_m)) +
+  geom_density() +
+  scale_x_log10(n.breaks = 5) +
+  scale_x_log10(
+    breaks = c(1, 10, 100, 1000),
+    labels = c("1", "10", "100", "1,000")
+  ) +
+  theme_bw() +
   xlab(expression("Maximum depth (m)")) +
-  theme(axis.title.x = element_text(vjust = 1,
-                                    margin = margin(t = 7.1)),
-        axis.text.x = element_text(angle = 30, hjust = 1))
+  theme(
+    axis.title.x = element_text(
+      vjust = 1,
+      margin = margin(t = 7.1)
+    ),
+    axis.text.x = element_text(angle = 30, hjust = 1)
+  )
 
-area <- metadata %>% filter(Focal_site == TRUE) %>%
+area <- metadata %>%
+  filter(Focal_site == TRUE) %>%
   group_by(LakeID) %>%
   summarize(SurfaceArea_km2 = mean(SurfaceArea_km2, na.rm = T)) %>%
-  ggplot(aes(x = SurfaceArea_km2))+
-  geom_density()+
-  scale_x_log10(n.breaks = 3, breaks = c(0.0001, 0.01, 1, 100, 100000), 
-                labels = c("0.0001", "0.01", "1", "100","100,000"))+
-  theme_bw()+
-  xlab(expression("Surface area ("*km^2*")"))+
-  theme(axis.title.x = element_text(vjust = 1),
-        axis.text.x = element_text(angle = 30, hjust = 1))
+  ggplot(aes(x = SurfaceArea_km2)) +
+  geom_density() +
+  scale_x_log10(
+    n.breaks = 3, breaks = c(0.0001, 0.01, 1, 100, 100000),
+    labels = c("0.0001", "0.01", "1", "100", "100,000")
+  ) +
+  theme_bw() +
+  xlab(expression("Surface area (" * km^2 * ")")) +
+  theme(
+    axis.title.x = element_text(vjust = 1),
+    axis.text.x = element_text(angle = 30, hjust = 1)
+  )
 
 doys <- data %>%
   left_join(metadata %>%
-              select(LakeID, Latitude)) %>%
-  mutate(Date = as.Date(Date),
-         Date = ifelse(Latitude < 0, Date + months(6), Date),
-         Date = as.Date(Date)) %>%
-  filter(!is.na(CO2_umolL)|!is.na(CH4_umolL)) %>%
+    select(LakeID, Latitude)) %>%
+  mutate(
+    Date = as.Date(Date),
+    Date = ifelse(Latitude < 0, Date + months(6), Date),
+    Date = as.Date(Date)
+  ) %>%
+  filter(!is.na(CO2_umolL) | !is.na(CH4_umolL)) %>%
   mutate(yday = lubridate::yday(Date)) %>%
   group_by(LakeID, yday) %>%
   summarize() %>%
-  ggplot(aes(x = yday))+
-  geom_density()+
-  xlab("Sampling date")+
-  theme_bw()+
-  scale_x_continuous(breaks = c(82, 266),
-                     labels = c("spring\nequinox",
-                                "autumn\nequinox"),
-                     limits = c(0,365))+
+  ggplot(aes(x = yday)) +
+  geom_density() +
+  xlab("Sampling date") +
+  theme_bw() +
+  scale_x_continuous(
+    breaks = c(82, 266),
+    labels = c(
+      "spring\nequinox",
+      "autumn\nequinox"
+    ),
+    limits = c(0, 365)
+  ) +
   theme(axis.title.x = element_text(vjust = 0.5))
 ```
 
 ## Step 3: Map data availability across lakes
 
 ```{r map}
-#Load basemap
+# Load basemap
 world <- ne_countries(scale = "medium", returnclass = "sf")
 crs_wintri <- "+proj=wintri +datum=WGS84 +no_defs +over"
 world_wintri <- st_transform_proj(world, crs = crs_wintri)
 
 disp_win_wgs84 <- st_sfc(st_point(c(-180, -80)), st_point(c(180, 80)),
-                         crs = 4326)
+  crs = 4326
+)
 disp_win_trans <- st_transform(disp_win_wgs84, crs = crs_wintri)
 disp_win_coord <- st_coordinates(disp_win_trans)
 
-grat_wintri <- 
-  st_graticule(x = c(-180, -90, 180, 90),
-               crs = st_crs(4326),
-               lat = c(-89.9, seq(-90, 90, 20), 89.9),
-               ) %>%
+grat_wintri <-
+  st_graticule(
+    x = c(-180, -90, 180, 90),
+    crs = st_crs(4326),
+    lat = c(-89.9, seq(-90, 90, 20), 89.9),
+  ) %>%
   st_transform_proj(crs = crs_wintri)
-label_grat_y <- grat_wintri %>% st_drop_geometry %>% filter(degree != 89.9) %>%
-  filter(degree != -89.9) %>% filter(type == "N") %>%
+label_grat_y <- grat_wintri %>%
+  st_drop_geometry() %>%
+  filter(degree != 89.9) %>%
+  filter(degree != -89.9) %>%
+  filter(type == "N") %>%
   mutate(degree_label = sub("\\..", "", degree_label)) %>%
-  select(degree_label, x_end, y_start) %>% 
-  rename(long = x_end, lat = y_start) %>% st_as_sf(coords = c("long", "lat"), crs = 4326) %>%
+  select(degree_label, x_end, y_start) %>%
+  rename(long = x_end, lat = y_start) %>%
+  st_as_sf(coords = c("long", "lat"), crs = 4326) %>%
   st_transform_proj(crs = crs_wintri)
-label_grat_x <- grat_wintri %>% st_drop_geometry %>% filter(type == "E") %>%
-  select(degree_label, x_start, y_end) %>% 
-  rename(long = x_start, lat = y_end) %>% st_as_sf(coords = c("long", "lat"), crs = 4326) %>%
+label_grat_x <- grat_wintri %>%
+  st_drop_geometry() %>%
+  filter(type == "E") %>%
+  select(degree_label, x_start, y_end) %>%
+  rename(long = x_start, lat = y_end) %>%
+  st_as_sf(coords = c("long", "lat"), crs = 4326) %>%
   st_transform_proj(crs = crs_wintri)
-meta_wintri <- st_transform_proj(st_as_sf(metadata, coords = c("Longitude", "Latitude"), crs = 4326), 
-                                 crs = crs_wintri)
+meta_wintri <- st_transform_proj(st_as_sf(metadata, coords = c("Longitude", "Latitude"), crs = 4326),
+  crs = crs_wintri
+)
 meta_wintri <- data %>%
   group_by(LakeID) %>%
-  summarize(CH4 = ifelse(sum(!is.na(CH4_umolL))>0, 1, 0),
-            CO2 = ifelse(sum(!is.na(CO2_umolL))>0, 1, 0)) %>%
+  summarize(
+    CH4 = ifelse(sum(!is.na(CH4_umolL)) > 0, 1, 0),
+    CO2 = ifelse(sum(!is.na(CO2_umolL)) > 0, 1, 0)
+  ) %>%
   mutate(Data_avail = ifelse(CH4 + CO2 == 2,
-                             "Both",
-                             ifelse(CH4 == 1, "CH[4]",
-                                    ifelse(CO2 == 1, "CO[2]", NA)))) %>%
+    "Both",
+    ifelse(CH4 == 1, "CH[4]",
+      ifelse(CO2 == 1, "CO[2]", NA)
+    )
+  )) %>%
   left_join(metadata) %>%
   filter(!is.na(Latitude)) %>%
   st_as_sf(coords = c("Longitude", "Latitude"), crs = 4326) %>%
-  st_transform_proj(crs = crs_wintri) 
+  st_transform_proj(crs = crs_wintri)
 
-# vectors of latitudes and longitudes that go once around the 
+# vectors of latitudes and longitudes that go once around the
 # globe in 1-degree steps
 lat_min <- -90
 lat_max <- 90
 lon_min <- -180
 lon_max <- 180
-lats <- c(lat_max:lat_min, rep(lat_min, lon_max-lon_min+1), 
-          lat_min:lat_max, rep(lat_max, lon_max-lon_min+1))
-longs <- c(rep(lon_max, lat_max-lat_min+1), lon_max:lon_min, 
-           rep(lon_min, lat_max-lat_min+1), lon_min:lon_max)
+lats <- c(
+  lat_max:lat_min, rep(lat_min, lon_max - lon_min + 1),
+  lat_min:lat_max, rep(lat_max, lon_max - lon_min + 1)
+)
+longs <- c(
+  rep(lon_max, lat_max - lat_min + 1), lon_max:lon_min,
+  rep(lon_min, lat_max - lat_min + 1), lon_min:lon_max
+)
 
 # turn into correctly projected sf collection
-wintri_outline <- 
+wintri_outline <-
   list(cbind(longs, lats)) %>%
   st_polygon() %>%
   st_sfc( # create sf geometry list column
     crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
-  ) %>% 
+  ) %>%
   st_sf() %>%
   st_transform_proj(crs = crs_wintri) # transform to Winkel tripel
 
@@ -159,188 +195,252 @@ both <- ns$n[ns$Data_avail == "Both"]
 ch4 <- ns$n[ns$Data_avail == "CH[4]"]
 co2 <- ns$n[ns$Data_avail == "CO[2]"]
 
-#Plot!
+# Plot!
 map <- ggplot(data = world_wintri) +
-  geom_sf(data = wintri_outline,
-    fill = "#EDF6FD", size = 0.5/.pt) + 
-  geom_sf(data = grat_wintri, color = "black", size = 0.13, alpha = 0.7, 
-          linetype = "dotted") + 
-  geom_sf(fill = "white", color = "grey50", size = 0.5/.pt) +
-  geom_sf(data = meta_wintri %>% filter(Data_avail == "CO[2]"),
-          aes(fill = Data_avail),shape = 21, color = "white", 
-          size = 2, alpha  =.5, stroke = .4)+
-  geom_sf(data = meta_wintri %>% filter(Data_avail == "CH[4]"),
-          aes(fill = Data_avail),shape = 21, color = "white", 
-          size = 2, alpha  =.5, stroke = .4)+
-  geom_sf(data = meta_wintri %>% filter(Data_avail == "Both"),
-          aes(fill = Data_avail),shape = 21, color = "white", 
-          size = 2, alpha  =.5, stroke = .4)+
-  geom_sf_text(data = label_grat_y, aes(label = degree_label), parse = T,
-               nudge_x = c(1400000), size = 2.5) +
-  geom_sf_text(data = label_grat_x, aes(label = degree_label), parse = T,
-               nudge_y = c(400000), size = 2.5) +
-  coord_sf(datum = NULL, expand = T)+
-  scale_fill_manual(values = c("#294867","#A41D6E","#FD8C0C"),
-                    name = "Data availability",
-                    labels = c(bquote(CH[4]~"and"~CO[2]~"("*italic(n)~"="~.(both)*")"), 
-                               bquote(CH[4]~"only ("*italic(n)~"="~.(ch4)*")"),
-                               bquote(CO[2]~"only  ("*italic(n)~"="~.(co2)*")")))+
-  theme(plot.margin = ggplot2::margin(0, 0, 0, 0, "cm"),
-        plot.background = element_rect(fill = "white"),
-        legend.position = "bottom",
-        legend.title = element_blank(),
-        legend.margin=ggplot2::margin(-0.5, 0, 0, 0, "cm"),
-        legend.spacing.x = unit(0, "mm"),
-        legend.key.spacing.x = unit(0, "mm"),
-        legend.spacing.y = unit(0, "mm"),
-        legend.text = element_text(margin = ggplot2::margin(l = 0)),
-        axis.title.x = element_blank(),
-        axis.title.y = element_blank(),
-        axis.ticks.x = element_blank(),
-        axis.text.x = element_blank(),
-        axis.ticks.y = element_blank(),
-        axis.text.y = element_blank(),
-        panel.background = element_rect(fill = "white"),
-        panel.grid = element_blank())
+  geom_sf(
+    data = wintri_outline,
+    fill = "#EDF6FD", size = 0.5 / .pt
+  ) +
+  geom_sf(
+    data = grat_wintri, color = "black", size = 0.13, alpha = 0.7,
+    linetype = "dotted"
+  ) +
+  geom_sf(fill = "white", color = "grey50", size = 0.5 / .pt) +
+  geom_sf(
+    data = meta_wintri %>% filter(Data_avail == "CO[2]"),
+    aes(fill = Data_avail), shape = 21, color = "white",
+    size = 2, alpha = .5, stroke = .4
+  ) +
+  geom_sf(
+    data = meta_wintri %>% filter(Data_avail == "CH[4]"),
+    aes(fill = Data_avail), shape = 21, color = "white",
+    size = 2, alpha = .5, stroke = .4
+  ) +
+  geom_sf(
+    data = meta_wintri %>% filter(Data_avail == "Both"),
+    aes(fill = Data_avail), shape = 21, color = "white",
+    size = 2, alpha = .5, stroke = .4
+  ) +
+  geom_sf_text(
+    data = label_grat_y, aes(label = degree_label), parse = T,
+    nudge_x = c(1400000), size = 2.5
+  ) +
+  geom_sf_text(
+    data = label_grat_x, aes(label = degree_label), parse = T,
+    nudge_y = c(400000), size = 2.5
+  ) +
+  coord_sf(datum = NULL, expand = T) +
+  scale_fill_manual(
+    values = c("#294867", "#A41D6E", "#FD8C0C"),
+    name = "Data availability",
+    labels = c(
+      bquote(CH[4] ~ "and" ~ CO[2] ~ "(" * italic(n) ~ "=" ~ .(both) * ")"),
+      bquote(CH[4] ~ "only (" * italic(n) ~ "=" ~ .(ch4) * ")"),
+      bquote(CO[2] ~ "only  (" * italic(n) ~ "=" ~ .(co2) * ")")
+    )
+  ) +
+  theme(
+    plot.margin = ggplot2::margin(0, 0, 0, 0, "cm"),
+    plot.background = element_rect(fill = "white"),
+    legend.position = "bottom",
+    legend.title = element_blank(),
+    legend.margin = ggplot2::margin(-0.5, 0, 0, 0, "cm"),
+    legend.spacing.x = unit(0, "mm"),
+    legend.key.spacing.x = unit(0, "mm"),
+    legend.spacing.y = unit(0, "mm"),
+    legend.text = element_text(margin = ggplot2::margin(l = 0)),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.y = element_blank(),
+    panel.background = element_rect(fill = "white"),
+    panel.grid = element_blank()
+  )
 
-#europe
-bbox_coords <- st_bbox(c(xmin = -8.9, ymin = 35.2, 
-                         xmax = 28, ymax = 72.2))
+# europe
+bbox_coords <- st_bbox(c(
+  xmin = -8.9, ymin = 35.2,
+  xmax = 28, ymax = 72.2
+))
 bbox_polygon <- st_as_sf(st_as_sfc(st_bbox(bbox_coords)), crs = 4326)
 bbox_proj <- bbox_polygon %>% st_transform_proj(crs = "+proj=wintri")
 eu <- map +
   coord_sf(
-    xlim = st_bbox(bbox_proj)[c(1,3)],
-    ylim = st_bbox(bbox_proj)[c(2,4)],
+    xlim = st_bbox(bbox_proj)[c(1, 3)],
+    ylim = st_bbox(bbox_proj)[c(2, 4)],
     expand = FALSE
-    ) +
+  ) +
   annotation_scale(location = "br", width_hint = 0.3, height = unit(0.1, "cm")) +
-  theme(legend.position = "none",
-        panel.border = element_rect(colour = "black", fill=NA, linewidth=0.7))
+  theme(
+    legend.position = "none",
+    panel.border = element_rect(colour = "black", fill = NA, linewidth = 0.7)
+  )
 
-#USA
+# USA
 usa_states <- st_as_sf(maps::map("state", fill = TRUE, plot = FALSE))
-bbox_coords <- st_bbox(c(xmin = -102, ymin = 26, 
-                         xmax = -72, ymax = 50))
+bbox_coords <- st_bbox(c(
+  xmin = -102, ymin = 26,
+  xmax = -72, ymax = 50
+))
 bbox_polygon <- st_as_sf(st_as_sfc(st_bbox(bbox_coords)), crs = 4326)
 bbox_proj <- bbox_polygon %>% st_transform_proj(crs = "EPSG:5070")
 usa <- map +
-  geom_sf(data = usa_states, aes(fill = "State"), 
-          color = "grey70", fill = NA, size=0.125) +
+  geom_sf(
+    data = usa_states, aes(fill = "State"),
+    color = "grey70", fill = NA, size = 0.125
+  ) +
   coord_sf(
-    xlim = st_bbox(bbox_proj)[c(1,3)],
-    ylim = st_bbox(bbox_proj)[c(2,4)],
+    xlim = st_bbox(bbox_proj)[c(1, 3)],
+    ylim = st_bbox(bbox_proj)[c(2, 4)],
     expand = FALSE,
     crs = "EPSG:5070"
-    ) +
+  ) +
   annotation_scale(location = "br", width_hint = 0.3, height = unit(0.1, "cm")) +
-  theme(legend.position = "none",
-        panel.border = element_rect(colour = "black", fill=NA, linewidth=0.7))
+  theme(
+    legend.position = "none",
+    panel.border = element_rect(colour = "black", fill = NA, linewidth = 0.7)
+  )
 
 
-#full map
-map2 <- map + theme(plot.margin = unit(c(0.5, 5.5, 1.5, 70), "pt")) 
-full <- map2 %>% 
+# full map
+map2 <- map + theme(plot.margin = unit(c(0.5, 5.5, 1.5, 70), "pt"))
+full <- map2 %>%
   ggdraw() +
   draw_plot(usa,
-    x = 0, 
+    x = 0,
     y = 0.15,
-    width = 0.4, 
+    width = 0.4,
     height = 0.355,
-    halign = 0.5, valign = 0.5) +
+    halign = 0.5, valign = 0.5
+  ) +
   draw_plot(eu,
-    x = 0, 
+    x = 0,
     y = 0.55,
-    width = 0.4, 
+    width = 0.4,
     height = 0.4,
-    halign = 0.5, valign = 0.5)
-  
-comb <- ggpubr::ggarrange(full, 
-                  ggpubr::ggarrange(depth, area, doys, nrow = 1, ncol = 3, 
-                                      labels = c("b1", "b2", "b3"), label.x = -0.03,
-                                      font.label = list(size = 10), align = "h"), 
-                  nrow=2, heights = c(2, 1), labels = c("a", "b"), label.y = c(1, 1.15))
-ggsave(plot = comb, filename = "../Figures/Data summary - drivers.jpeg", width = 6, 
-       height = 5.5, units = "in", dpi = 300)
+    halign = 0.5, valign = 0.5
+  )
+
+comb <- ggpubr::ggarrange(full,
+  ggpubr::ggarrange(depth, area, doys,
+    nrow = 1, ncol = 3,
+    labels = c("b1", "b2", "b3"), label.x = -0.03,
+    font.label = list(size = 10), align = "h"
+  ),
+  nrow = 2, heights = c(2, 1), labels = c("a", "b"), label.y = c(1, 1.15)
+)
+ggsave(
+  plot = comb, filename = "../Figures/Data summary - drivers.jpeg", width = 6,
+  height = 5.5, units = "in", dpi = 300
+)
 ```
 
 ## Step 4: Calculate statistics for manuscript
 
 ```{r stats}
-length(unique(metadata$LakeID)) #522
+length(unique(metadata$LakeID)) # 522
 summary(as.factor(tolower(metadata$TrophicStatus)))
 metadata %>%
   filter(Focal_site) %>%
   group_by(LakeID) %>%
-  summarize(MaximumDepth_m = mean(MaximumDepth_m, na.rm = T),
-            SurfaceArea_km2 = mean(SurfaceArea_km2, na.rm = T)) %>%
+  summarize(
+    MaximumDepth_m = mean(MaximumDepth_m, na.rm = T),
+    SurfaceArea_km2 = mean(SurfaceArea_km2, na.rm = T)
+  ) %>%
   pivot_longer(c(MaximumDepth_m, SurfaceArea_km2)) %>%
   group_by(name) %>%
-  summarize(mean = mean(value, na.rm = T), 
-    median = median(value, na.rm = T), 
-    min = min(value, na.rm = T), 
-    max = max(value, na.rm = T))
+  summarize(
+    mean = mean(value, na.rm = T),
+    median = median(value, na.rm = T),
+    min = min(value, na.rm = T),
+    max = max(value, na.rm = T)
+  )
 summary(as.factor(metadata$StratificationRegime))
 
 metadata %>%
   mutate(LakeType = factor(LakeType,
-                           levels = c("lake", "shallow lake or wetland", 
-                                      "small lake", "pond", "reservoir", "other"),
-                           labels = c("lake", "shallow lake", 
-                                      "small lake", "pond", "reservoir", "other"))) %>%
+    levels = c(
+      "lake", "shallow lake or wetland",
+      "small lake", "pond", "reservoir", "other"
+    ),
+    labels = c(
+      "lake", "shallow lake",
+      "small lake", "pond", "reservoir", "other"
+    )
+  )) %>%
   group_by(LakeID) %>%
-  filter(length(unique(LakeType))==1) %>%
+  filter(length(unique(LakeType)) == 1) %>%
   summarize(LakeType = unique(LakeType)) %>%
   ungroup() %>%
   mutate(tot = n()) %>%
   group_by(LakeType) %>%
-  summarize(n = n(),
-            pct = n()/unique(tot)*100)
+  summarize(
+    n = n(),
+    pct = n() / unique(tot) * 100
+  )
 
 metadata %>%
   mutate(StratificationRegime = factor(StratificationRegime,
-                                       levels = c("meromictic or amictic", "monomictic","dimictic",
-                                                  "dimictic to polymictic", "polymictic"))) %>%
+    levels = c(
+      "meromictic or amictic", "monomictic", "dimictic",
+      "dimictic to polymictic", "polymictic"
+    )
+  )) %>%
   group_by(LakeID) %>%
-  filter(length(unique(StratificationRegime))==1,
-         length(unique(TrophicStatus))==1) %>%
-  summarize(TrophicStatus = unique(TrophicStatus),
-            StratificationRegime = unique(StratificationRegime)) %>%
+  filter(
+    length(unique(StratificationRegime)) == 1,
+    length(unique(TrophicStatus)) == 1
+  ) %>%
+  summarize(
+    TrophicStatus = unique(TrophicStatus),
+    StratificationRegime = unique(StratificationRegime)
+  ) %>%
   group_by(StratificationRegime, TrophicStatus) %>%
   summarize(n = n()) %>%
   pivot_wider(names_from = TrophicStatus, values_from = n)
 
 metadata %>%
   mutate(StratificationRegime = factor(StratificationRegime,
-                                       levels = c("meromictic or amictic", "monomictic","dimictic",
-                                                  "dimictic to polymictic", "polymictic"))) %>%
+    levels = c(
+      "meromictic or amictic", "monomictic", "dimictic",
+      "dimictic to polymictic", "polymictic"
+    )
+  )) %>%
   group_by(LakeID) %>%
-  filter(length(unique(StratificationRegime))==1) %>%
+  filter(length(unique(StratificationRegime)) == 1) %>%
   summarize(StratificationRegime = unique(StratificationRegime)) %>%
   filter(!is.na(StratificationRegime)) %>%
   ungroup() %>%
   mutate(tot = n()) %>%
   group_by(StratificationRegime) %>%
-  summarize(n = n(),
-            pct = n()/unique(tot)*100)
+  summarize(
+    n = n(),
+    pct = n() / unique(tot) * 100
+  )
 
 metadata %>%
   group_by(LakeID) %>%
-  filter(length(unique(TrophicStatus))==1) %>%
+  filter(length(unique(TrophicStatus)) == 1) %>%
   summarize(TrophicStatus = unique(TrophicStatus)) %>%
   filter(!is.na(TrophicStatus)) %>%
   ungroup() %>%
   mutate(tot = n()) %>%
   group_by(TrophicStatus) %>%
-  summarize(n = n(),
-            pct = n()/unique(tot)*100)
+  summarize(
+    n = n(),
+    pct = n() / unique(tot) * 100
+  )
 
 
 metadata %>%
   group_by(LakeID, LakeName) %>%
-  summarize(Max_depth = max(MaximumDepth_m, na.rm = T),
-            Min_depth = min(MaximumDepth_m, na.rm = T)) %>%
-  filter(!Max_depth== Min_depth)
+  summarize(
+    Max_depth = max(MaximumDepth_m, na.rm = T),
+    Min_depth = min(MaximumDepth_m, na.rm = T)
+  ) %>%
+  filter(!Max_depth == Min_depth)
 
 metadata %>%
   filter(is.na(TrophicStatus)) %>%
@@ -352,7 +452,7 @@ length(unique(data$LakeID))
 unique(data$LakeID[!data$LakeID %in% metadata$LakeID])
 unique(metadata$LakeID[!metadata$LakeID %in% data$LakeID])
 length(unique(metadata$ContactName[!is.na(metadata$ContactName)]))
-length(unique(metadata$Source[!is.na(metadata$Source)&!grepl("Contributed", metadata$Source)]))
+length(unique(metadata$Source[!is.na(metadata$Source) & !grepl("Contributed", metadata$Source)]))
 length(unique(metadata$Country))
 length(unique(data$LakeID))
 
