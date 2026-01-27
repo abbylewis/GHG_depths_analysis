@@ -10,11 +10,12 @@ This file runs random forest regressions to characterize the drivers of surface-
 
 -   Step 1: Load data and packages
 -   Step 2: Format data for regressions
--   Step 3: SPLM analysis
--   Step 4: Permutation
--   Step 5: Simple/complex comparison
--   Step 6: Ratio analysis
--   Step 7: Percent saturation
+-   Step 3: Plot summary stats about drivers
+-   Step 4: SPLM analysis
+-   Step 5: Permutation
+-   Step 6: Simple/complex comparison
+-   Step 7: Ratio analysis
+-   Step 8: Percent saturation
 
 ## Step 1: Load data and packages
 
@@ -189,7 +190,11 @@ vars <- c(
 )
 
 log_select <- log_vars[log_vars %in% vars]
+```
 
+## Step 3: Plot summary stats about drivers
+
+```{r}
 for_cor <- all %>%
   filter(if_all(all_of(log_select), \(x) x > 0)) %>%
   ungroup() %>%
@@ -235,11 +240,6 @@ dens_plots <- for_cor %>%
 
 ggsave("../Figures/dens_plots.png", dens_plots, width = 7, height = 4.5, dpi = 300)
 
-cor(for_cor,
-  use = "pairwise.complete.obs",
-  method = "spearman"
-)
-
 for_corrplot <- for_cor %>%
   mutate(row = row_number()) %>%
   pivot_longer(-row) %>%
@@ -279,7 +279,7 @@ corrplot::corrplot(M,
 dev.off()
 ```
 
-## Step 3: SPLM analysis
+## Step 4: SPLM analysis
 
 ```{r splm}
 # Run regressions
@@ -303,7 +303,7 @@ ggsave(ch4_plot,
 )
 ```
 
-## Step 4: Permutation
+## Step 5: Permutation
 
 ```{r permutation}
 # Run regressions
@@ -369,7 +369,7 @@ ggsave(ch4_plot,
 )
 ```
 
-## Step 5: Simple/complex comparison
+## Step 6: Simple/complex comparison
 
 ```{r simple_complex}
 vars_simple <- c(
@@ -387,7 +387,7 @@ s <- comp_two_rf_permutation(all, vars_simple, vars,
 ggsave(s, dpi = 300, filename = "../Figures/Model comparison - rmse comb imp - permutation.jpeg", width = 6, height = 5)
 ```
 
-## Step 6: Ratio analysis
+## Step 7: Ratio analysis
 
 ```{r ratio}
 epi_hypo <- layer_sum %>%
@@ -453,7 +453,7 @@ ggsave(comb_plot,
 )
 ```
 
-## Step 7: Percent saturation
+## Step 8: Percent saturation
 
 ```{r pSat}
 all_pSat <- all %>%
@@ -476,32 +476,6 @@ vars <- c(
   "Absolute_latitude"
 )
 
-cor(
-  all %>%
-    ungroup() %>%
-    filter(Layer == "bot") %>%
-    select(is.numeric) %>%
-    select(any_of(vars)),
-  use = "pairwise.complete.obs",
-  method = "spearman"
-)
-
-# New format
-
-# co2_plot <- generate_plot_splmRF(all = all_pSat, vars, var_names,
-#                                gas_name = "CO[2]", log_vars, pSat = T)
-# co2_plot
-# ggsave(co2_plot, dpi = 300,
-#       filename = "../Figures/CO2 drivers - surf bot - pSat.jpeg",
-#       width = 6, height = 4.5)
-#
-# ch4_plot <- generate_plot_splmRF(all_pSat, vars, var_names,
-#                                "CH[4]", log_vars, pSat = T)
-# ch4_plot
-# ggsave(ch4_plot, dpi = 300,
-#       filename = "../Figures/CH4 drivers - surf bot - pSat.jpeg",
-#       width = 6, height = 4.5)
-#
 co2_plot <- generate_plot_permutation(
   all = all_pSat, vars = vars,
   var_names = var_names, pSat = T,

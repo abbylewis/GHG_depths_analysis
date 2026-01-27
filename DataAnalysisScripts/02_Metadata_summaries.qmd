@@ -13,6 +13,7 @@ Calculate basic summary stats and create map (Figure 1).
 -   Step 2: Create subplots for key summary stats
 -   Step 3: Map data availability across lakes
 -   Step 4: Calculate statistics for manuscript
+-   Step 5: Make supplemental table
 
 ## Step 1: Load packages and data
 
@@ -23,14 +24,14 @@ library(rnaturalearth)
 library(rnaturalearthdata)
 # remotes::install_github("ropensci/rnaturalearthhires")
 library(rnaturalearthhires)
-library(ggspatial) # annotation_scale
-library(lwgeom) # st_transform_proj
+library(ggspatial) # annotation_scale()
+library(lwgeom) # st_transform_proj()
 library(sf)
-library(cowplot) # ggdraw
+library(cowplot) # ggdraw()
 
 # Load data
-data <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/2220/5/ca2482ef3c43f053ae13cdf2bf5ba7a8") %>%
-  filter(Focal_site) # Not cleaned
+data <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/2220/5/8553f79eeea9a6f722fc50d733ca9a74") %>%
+  filter(Focal_site) # Cleaned
 metadata <- read_delim("https://pasta.lternet.edu/package/data/eml/edi/2220/5/81f003749ad039837475571390b20190") %>%
   filter(Focal_site)
 layer_sum <- read_csv("../CompiledData/layer_sum_not_mean.csv")
@@ -45,7 +46,6 @@ depth <- metadata %>%
   summarize(MaximumDepth_m = mean(MaximumDepth_m, na.rm = T)) %>%
   ggplot(aes(x = MaximumDepth_m)) +
   geom_density() +
-  scale_x_log10(n.breaks = 5) +
   scale_x_log10(
     breaks = c(1, 10, 100, 1000),
     labels = c("1", "10", "100", "1,000")
@@ -55,7 +55,7 @@ depth <- metadata %>%
   theme(
     axis.title.x = element_text(
       vjust = 1,
-      margin = margin(t = 7.1)
+      margin = ggplot2::margin(t = 7.1)
     ),
     axis.text.x = element_text(angle = 30, hjust = 1)
   )
@@ -79,7 +79,8 @@ area <- metadata %>%
 
 doys <- data %>%
   left_join(metadata %>%
-    select(LakeID, Latitude)) %>%
+    select(LakeID, Source, Latitude) %>%
+      distinct()) %>%
   mutate(
     Date = as.Date(Date),
     Date = ifelse(Latitude < 0, Date + months(6), Date),
@@ -340,8 +341,16 @@ ggsave(
 ## Step 4: Calculate statistics for manuscript
 
 ```{r stats}
+# Number of lakes
 length(unique(metadata$LakeID)) # 522
-summary(as.factor(tolower(metadata$TrophicStatus)))
+#Number of countries
+length(unique(c(
+  metadata$Country[!is.na(metadata$Country) &
+    !metadata$Country == "Austria, Germany, and Switzerland"],
+  "Austria", "Germany", "Switzerland"
+))) #38 unique
+
+# Lake size summaries
 metadata %>%
   filter(Focal_site) %>%
   group_by(LakeID) %>%
@@ -357,8 +366,8 @@ metadata %>%
     min = min(value, na.rm = T),
     max = max(value, na.rm = T)
   )
-summary(as.factor(metadata$StratificationRegime))
 
+#How many of each lake type (# in MS is for # of reservoirs specifically)
 metadata %>%
   mutate(LakeType = factor(LakeType,
     levels = c(
@@ -380,81 +389,36 @@ metadata %>%
     n = n(),
     pct = n() / unique(tot) * 100
   )
+```
 
-metadata %>%
-  mutate(StratificationRegime = factor(StratificationRegime,
-    levels = c(
-      "meromictic or amictic", "monomictic", "dimictic",
-      "dimictic to polymictic", "polymictic"
-    )
-  )) %>%
+## Step 5: Make supplemental table
+
+```{r}
+sum <- metadata %>%
+  # Lakes could have multiple reported trophic/mixing regimes. Deal with that first
   group_by(LakeID) %>%
-  filter(
-    length(unique(StratificationRegime)) == 1,
-    length(unique(TrophicStatus)) == 1
-  ) %>%
+  mutate(StratificationRegime = ifelse(length(unique(StratificationRegime)) > 1,
+                                       NA,
+                                       StratificationRegime),
+         TrophicStatus = ifelse(length(unique(TrophicStatus)) > 1,
+                                       NA,
+                                       TrophicStatus),
+         TrophicStatus = ifelse(is.na(TrophicStatus),
+                                "other",
+                                TrophicStatus)) %>%
   summarize(
     TrophicStatus = unique(TrophicStatus),
     StratificationRegime = unique(StratificationRegime)
   ) %>%
-  group_by(StratificationRegime, TrophicStatus) %>%
-  summarize(n = n()) %>%
-  pivot_wider(names_from = TrophicStatus, values_from = n)
-
-metadata %>%
   mutate(StratificationRegime = factor(StratificationRegime,
     levels = c(
       "meromictic or amictic", "monomictic", "dimictic",
       "dimictic to polymictic", "polymictic"
     )
   )) %>%
-  group_by(LakeID) %>%
-  filter(length(unique(StratificationRegime)) == 1) %>%
-  summarize(StratificationRegime = unique(StratificationRegime)) %>%
-  filter(!is.na(StratificationRegime)) %>%
-  ungroup() %>%
-  mutate(tot = n()) %>%
-  group_by(StratificationRegime) %>%
-  summarize(
-    n = n(),
-    pct = n() / unique(tot) * 100
-  )
+  group_by(StratificationRegime, TrophicStatus) %>%
+  summarize(n = n()) %>%
+  pivot_wider(names_from = TrophicStatus, values_from = n)
 
-metadata %>%
-  group_by(LakeID) %>%
-  filter(length(unique(TrophicStatus)) == 1) %>%
-  summarize(TrophicStatus = unique(TrophicStatus)) %>%
-  filter(!is.na(TrophicStatus)) %>%
-  ungroup() %>%
-  mutate(tot = n()) %>%
-  group_by(TrophicStatus) %>%
-  summarize(
-    n = n(),
-    pct = n() / unique(tot) * 100
-  )
-
-
-metadata %>%
-  group_by(LakeID, LakeName) %>%
-  summarize(
-    Max_depth = max(MaximumDepth_m, na.rm = T),
-    Min_depth = min(MaximumDepth_m, na.rm = T)
-  ) %>%
-  filter(!Max_depth == Min_depth)
-
-metadata %>%
-  filter(is.na(TrophicStatus)) %>%
-  arrange(Source)
-
-length(unique(metadata$LakeID))
-length(unique(data$LakeID))
-
-unique(data$LakeID[!data$LakeID %in% metadata$LakeID])
-unique(metadata$LakeID[!metadata$LakeID %in% data$LakeID])
-length(unique(metadata$ContactName[!is.na(metadata$ContactName)]))
-length(unique(metadata$Source[!is.na(metadata$Source) & !grepl("Contributed", metadata$Source)]))
-length(unique(metadata$Country))
-length(unique(data$LakeID))
-
-finland <- left_join(data, metadata) %>% filter(Country == "Finland")
+sum
 ```

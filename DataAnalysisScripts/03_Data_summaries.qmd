@@ -11,9 +11,7 @@ This file calculates summary statistics for the manuscript
 
 -   Step 1: Load data and packages
 -   Step 2: Summary stats about dataset
--   Step 3: Data availability for CO2 vs CH4
--   Step 4: Data availability by lake type
--   Step 5: Concentrations in surface vs. bottom waters
+-   Step 3: Concentrations in surface vs. bottom waters
 
 ## Step 1: Load data and packages
 
@@ -35,35 +33,10 @@ full <- data %>%
 ## Step 2: Summary stats about dataset
 
 ```{r summary}
-# number of lakes
-length(unique(metadata$LakeID)) # 522 - matches all
-length(unique(metadata$LakeName))
-length(unique(data$LakeName))
-length(unique(data$LakeID))
-
-length(unique(full$ContactName[!is.na(full$ContactName)])) # 45
-length(unique(full$Source[!grepl("Contributed", full$Source) &
-  !is.na(full$Source)])) # 57
-length(unique(c(
-  full$Country[!is.na(full$Country) &
-    !full$Country == "Austria, Germany, and Switzerland"],
-  "Austria", "Germany", "Switzerland"
-))) # 38
-
-# Number of unique sampling events
-unique_profiles <- data %>%
-  filter(!is.na(CH4_umolL) | !is.na(CO2_umolL)) %>%
-  group_by(Date, LakeID, LakeName, Source) %>%
-  summarize()
-nrow(unique_profiles) # 2579
-length(unique(unique_profiles$LakeID)) # 543
-
-unique_samples <- data %>%
-  filter(!is.na(CH4_umolL) | !is.na(CO2_umolL)) %>%
-  mutate(Depth_m = round(Depth_m, 2)) %>%
-  group_by(Depth_m, Depth_layer, Date, LakeName, LakeID, Source) %>%
-  summarize()
-nrow(unique_samples) # 14449
+sum(!is.na(data$CO2_umolL))
+length(unique(data$LakeID[!is.na(data$CO2_umolL)]))
+sum(!is.na(data$CH4_umolL))
+length(unique(data$LakeID[!is.na(data$CH4_umolL)]))
 
 years <- data %>%
   filter(!is.na(CH4_umolL) | !is.na(CO2_umolL)) %>%
@@ -73,108 +46,26 @@ years <- data %>%
 
 # Most lakes have one year of data. Long term data is rare
 median(years$range) # 1
-max(years$range) # 35
-sum(years$range > 1) # 87
-years[years$range >= 10, ] # 9
 min(year(data$Date), na.rm = T) # 1961
 max(year(data$Date), na.rm = T) # 2023
 
-# Median of 3 dates per year
-unique_samples %>%
+# Number of unique sampling events
+unique_profiles <- data %>%
+  filter(!is.na(CH4_umolL) | !is.na(CO2_umolL)) %>%
+  group_by(Date, LakeID, LakeName, Source) %>%
+  summarize()
+
+# Median of 4 dates per year
+unique_profiles %>%
   mutate(Year = year(Date)) %>%
   group_by(Year, LakeID) %>%
   summarize(n = length(unique(Date))) %>%
   group_by(LakeID) %>%
   summarize(median = median(n)) %>%
   summarize(median(median))
-
-# Meduan of 4 total
-unique_samples %>%
-  group_by(LakeID) %>%
-  summarize(n = length(unique(Date))) %>%
-  group_by(LakeID) %>%
-  summarize(median = median(n)) %>%
-  summarize(median(median))
-
-# Multiple dates
-dates <- data %>%
-  filter(!is.na(CH4_umolL) | !is.na(CO2_umolL)) %>%
-  group_by(LakeName) %>%
-  summarize(dates = length(unique(Date))) %>%
-  filter(!is.na(dates))
-
-sum(dates$dates > 1) # 373
-
-length(unique(full$Hylak_id)) # 238
-
-# hylak ID
-length(unique(metadata[!is.na(metadata$Hylak_id), ]$Hylak_id))
-
-# depths
-remove_depth <- full %>%
-  group_by(LakeID, LakeName, Source) %>%
-  summarize(
-    depths = length(unique(Depth_m)),
-    Depth_m = max(Depth_m),
-    max_depth = first(MaximumDepth_m)
-  ) %>%
-  filter(depths < 2)
 ```
 
-## Step 3: Data availability for CO2 vs CH4
-
-```{r availability}
-unique_samples <- data %>%
-  filter(!is.na(CH4_umolL) | !is.na(CO2_umolL)) %>%
-  mutate(Depth_m = round(Depth_m, 2)) %>%
-  group_by(Depth_m, Depth_layer, Date, LakeName, LakeID) %>%
-  summarize()
-
-data %>%
-  group_by(LakeID) %>%
-  summarize(
-    CH4_umolL = mean(CH4_umolL, na.rm = T),
-    CO2_umolL = mean(CO2_umolL, na.rm = T)
-  ) %>%
-  pivot_longer(cols = c(CH4_umolL, CO2_umolL)) %>%
-  filter(!is.na(value)) %>%
-  group_by(name) %>%
-  summarize(n = n())
-
-p <- data %>%
-  filter(!is.na(Depth_m)) %>%
-  group_by(LakeID, Source, Focal_site) %>%
-  summarize(max = max(Depth_m, na.rm = T)) %>%
-  left_join(metadata) %>%
-  filter(max / MaximumDepth_m < 0.3)
-```
-
-## Step 4: Data availability by lake type
-
-```{r by_type}
-full %>%
-  group_by(LakeType, LakeID) %>%
-  summarise(
-    co2 = ifelse(sum(!is.na(CO2_umolL)) > 0, "yes", NA),
-    ch4 = ifelse(sum(!is.na(CH4_umolL)) > 0, "yes", NA),
-    DO = ifelse(sum(!is.na(DO_mgL)) > 0, "yes", NA),
-    temp = ifelse(sum(!is.na(Temp_C)) > 0, "yes", NA),
-    dates = ifelse(length(unique(Date)) > 1, "yes", NA)
-  ) %>%
-  mutate(LakeType = ifelse(LakeType == "shallow lake or wetland" |
-    LakeType == "small lake", "lake", LakeType)) %>%
-  group_by(LakeType) %>%
-  summarise(
-    n = length(unique(LakeID)),
-    co2 = sum(!is.na(co2)),
-    ch4 = sum(!is.na(ch4)),
-    temp = sum(!is.na(temp)),
-    DO = sum(!is.na(DO)),
-    dates = sum(!is.na(dates))
-  )
-```
-
-## Step 5: Concentrations in surface vs. bottom waters
+## Step 3: Concentrations in surface vs. bottom waters
 
 ```{r surf_bot}
 layer_sum <- read_csv("../CompiledData/layer_sum_not_mean.csv")
