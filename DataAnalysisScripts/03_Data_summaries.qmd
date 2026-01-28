@@ -1,5 +1,5 @@
 ---
-title: "Metadata summaries"
+title: "Data summaries"
 author: "Abby Lewis"
 format: html
 editor: visual

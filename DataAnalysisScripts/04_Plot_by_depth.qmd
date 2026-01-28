@@ -1,10 +1,10 @@
 ---
-title: "Figure 2: Concentrations"
+title: "Concentrations and solubility by depth"
 format: html
 editor: visual
 ---
 
-This file creates figures that summarize concentrations and solubility by depth
+This file creates figures that summarize concentrations and solubility by depth.
 
 ## Table of contents
 
