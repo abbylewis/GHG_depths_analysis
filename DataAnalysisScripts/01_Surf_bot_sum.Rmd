@@ -204,7 +204,7 @@ layer_sum_not_mean <- cleaned_data %>%
   select(LakeID:Temp_C) %>%
   left_join(buoyancy_freq %>% select(LakeID, Source, Date, buoyancy_frequency) %>% distinct())
 
-write_csv(layer_sum_not_mean, "../CompiledData/layer_sum_not_mean.csv")
+write_csv(layer_sum_not_mean, "../CompiledData/layer_sum.csv")
 
 #Stats for MS
 layer_sum_stats <- layer_sum_not_mean %>%

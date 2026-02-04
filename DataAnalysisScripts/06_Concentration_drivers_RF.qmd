@@ -35,7 +35,7 @@ source("R/comp_two_rf_permutation.R")
 # Load data
 metadata <- read_delim("https://pasta.lternet.edu/package/data/eml/edi/2220/5/81f003749ad039837475571390b20190") %>%
   filter(Focal_site)
-layer_sum <- read_csv("../CompiledData/layer_sum_not_mean.csv")
+layer_sum <- read_csv("../CompiledData/layer_sum.csv")
 
 # Create dictionary to use throughout
 var_names <- c(

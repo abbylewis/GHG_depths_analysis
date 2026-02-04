@@ -34,7 +34,7 @@ data <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/2220/5/8553f79e
   filter(Focal_site) # Cleaned
 metadata <- read_delim("https://pasta.lternet.edu/package/data/eml/edi/2220/5/81f003749ad039837475571390b20190") %>%
   filter(Focal_site)
-layer_sum <- read_csv("../CompiledData/layer_sum_not_mean.csv")
+layer_sum <- read_csv("../CompiledData/layer_sum.csv")
 ```
 
 ## Step 2: Create subplots for key summary stats
