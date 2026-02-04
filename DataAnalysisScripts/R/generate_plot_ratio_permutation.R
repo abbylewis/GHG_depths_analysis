@@ -29,6 +29,7 @@ generate_plot_ratio_permutation <- function(all_co2,
     "MaximumDepth_m" = "Max~depth~(m)",
     "TP_ugL_mean" = "TP~(µg~L^-1)",
     "Temp_C" = "Temp~(ºC)",
+    "Osgood" = "Osgood",
     "Absolute_latitude" = "Abs~lat~(DD)",
     "bot_buoyancy_frequency" = "Buoy~freq~(s^-2)"
   )

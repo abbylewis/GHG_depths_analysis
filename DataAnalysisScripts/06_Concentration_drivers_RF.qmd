@@ -406,10 +406,7 @@ epi_hypo <- layer_sum %>%
 
 epi_hypo_co2 <- epi_hypo %>%
   group_by(LakeID, Date) %>%
-  filter(
-    ratio_co2 == max(ratio_co2, na.rm = T),
-    is.finite(ratio_co2)
-  ) %>%
+  filter(is.finite(ratio_co2)) %>%
   mutate(
     name = "ratio_co2",
     value = ifelse(ratio_co2 <= 0, 0.001, ratio_co2),
@@ -418,10 +415,7 @@ epi_hypo_co2 <- epi_hypo %>%
 
 epi_hypo_ch4 <- epi_hypo %>%
   group_by(LakeID, Date) %>%
-  filter(
-    ratio_ch4 == max(ratio_ch4, na.rm = T),
-    is.finite(ratio_ch4)
-  ) %>%
+  filter(is.finite(ratio_ch4)) %>%
   mutate(name = "ratio_ch4") %>%
   mutate(
     value = ifelse(ratio_ch4 <= 0, 0.001, ratio_ch4),
