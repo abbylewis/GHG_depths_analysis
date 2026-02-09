@@ -77,24 +77,6 @@ data %>%
   summarize(
     across(c(n_co2, n_ch4), \(x) median(x[x != 0]))
   )
-
-# Lakes with one measurement
-data %>%
-  group_by(LakeID) %>%
-  summarize(
-    n_co2 = length(unique(Date[!is.na(CO2_umolL)])),
-    n_ch4 = length(unique(Date[!is.na(CH4_umolL)]))
-  ) %>%
-  ungroup() %>%
-  summarize(
-    across(c(n_co2, n_ch4), \(x) sum(x == 1))
-  )
-
-unique_profiles %>%
-  group_by(LakeID) %>%
-  summarize(n = length(unique(Date))) %>%
-  filter(n == 1) %>%
-  summarize(n())
 ```
 
 ## Step 3: Concentrations in surface vs. bottom waters
@@ -141,8 +123,19 @@ epi_hypo_data <- layer_sum %>%
 
 inverse_ch4 <- epi_hypo_data %>%
   filter(Gas == "CH[4]") %>%
-  filter(surf > bot)
+  filter(!is.na(surf),
+         !is.na(bot),
+         surf > bot)
 length(unique(inverse_ch4$LakeID))
+#What fraction of lakes have inverse profiles?
+length(unique(
+  epi_hypo_data %>%
+    filter(Gas == "CH[4]",
+           !is.na(surf),
+           !is.na(bot)) %>%
+    pull(LakeID)
+  ))
+79/249
 
 epi_hypo_data %>%
   mutate(DO_level = ifelse(Oxygen > 1, "Oxic", "Anoxic")) %>%

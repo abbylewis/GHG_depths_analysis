@@ -367,6 +367,24 @@ ggsave(ch4_plot,
   filename = "../Figures/CH4 drivers - surf bot - permutation - consistent.jpeg",
   width = 7, height = 6
 )
+
+# Lakes with one measurement
+all %>%
+  filter(
+    if_all(all_of(log_select), \(x) x > 0)
+  ) %>%
+  ungroup() %>%
+  select(all_of(c("value", vars, "LakeID", "name", "Layer", "Date"))) %>%
+  na.omit() %>%
+  group_by(LakeID, name, Layer) %>%
+  summarize(
+    n = length(unique(Date))
+  ) %>%
+  group_by(name, Layer) %>%
+  summarize(
+    only_1 = sum(n == 1),
+    median = median(n)
+  )
 ```
 
 ## Step 6: Simple/complex comparison
