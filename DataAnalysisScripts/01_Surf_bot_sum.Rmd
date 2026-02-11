@@ -206,7 +206,7 @@ layer_sum_not_mean <- cleaned_data %>%
 
 write_csv(layer_sum_not_mean, "../CompiledData/layer_sum.csv")
 
-#Stats for MS
+# Stats for MS
 layer_sum_stats <- layer_sum_not_mean %>%
   left_join(metadata)
 

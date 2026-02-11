@@ -80,7 +80,7 @@ area <- metadata %>%
 doys <- data %>%
   left_join(metadata %>%
     select(LakeID, Source, Latitude) %>%
-      distinct()) %>%
+    distinct()) %>%
   mutate(
     Date = as.Date(Date),
     Date = ifelse(Latitude < 0, Date + months(6), Date),
@@ -343,12 +343,12 @@ ggsave(
 ```{r stats}
 # Number of lakes
 length(unique(metadata$LakeID)) # 522
-#Number of countries
+# Number of countries
 length(unique(c(
   metadata$Country[!is.na(metadata$Country) &
     !metadata$Country == "Austria, Germany, and Switzerland"],
   "Austria", "Germany", "Switzerland"
-))) #38 unique
+))) # 38 unique
 
 # Lake size summaries
 metadata %>%
@@ -367,7 +367,7 @@ metadata %>%
     max = max(value, na.rm = T)
   )
 
-#How many of each lake type (# in MS is for # of reservoirs specifically)
+# How many of each lake type (# in MS is for # of reservoirs specifically)
 metadata %>%
   mutate(LakeType = factor(LakeType,
     levels = c(
@@ -397,15 +397,20 @@ metadata %>%
 sum <- metadata %>%
   # Lakes could have multiple reported trophic/mixing regimes. Deal with that first
   group_by(LakeID) %>%
-  mutate(StratificationRegime = ifelse(length(unique(StratificationRegime)) > 1,
-                                       NA,
-                                       StratificationRegime),
-         TrophicStatus = ifelse(length(unique(TrophicStatus)) > 1,
-                                       NA,
-                                       TrophicStatus),
-         TrophicStatus = ifelse(is.na(TrophicStatus),
-                                "other",
-                                TrophicStatus)) %>%
+  mutate(
+    StratificationRegime = ifelse(length(unique(StratificationRegime)) > 1,
+      NA,
+      StratificationRegime
+    ),
+    TrophicStatus = ifelse(length(unique(TrophicStatus)) > 1,
+      NA,
+      TrophicStatus
+    ),
+    TrophicStatus = ifelse(is.na(TrophicStatus),
+      "other",
+      TrophicStatus
+    )
+  ) %>%
   summarize(
     TrophicStatus = unique(TrophicStatus),
     StratificationRegime = unique(StratificationRegime)

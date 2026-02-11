@@ -123,19 +123,23 @@ epi_hypo_data <- layer_sum %>%
 
 inverse_ch4 <- epi_hypo_data %>%
   filter(Gas == "CH[4]") %>%
-  filter(!is.na(surf),
-         !is.na(bot),
-         surf > bot)
+  filter(
+    !is.na(surf),
+    !is.na(bot),
+    surf > bot
+  )
 length(unique(inverse_ch4$LakeID))
-#What fraction of lakes have inverse profiles?
+# What fraction of lakes have inverse profiles?
 length(unique(
   epi_hypo_data %>%
-    filter(Gas == "CH[4]",
-           !is.na(surf),
-           !is.na(bot)) %>%
+    filter(
+      Gas == "CH[4]",
+      !is.na(surf),
+      !is.na(bot)
+    ) %>%
     pull(LakeID)
-  ))
-79/249
+))
+79 / 249
 
 epi_hypo_data %>%
   mutate(DO_level = ifelse(Oxygen > 1, "Oxic", "Anoxic")) %>%
