@@ -662,7 +662,6 @@ GasHype-163,"Contributed by Sari Juutinen, Tuula Larmola, Pirkko Kortelainen, Pe
 GasHype-163,"Contributed by Sari Juutinen, Tuula Larmola, Pirkko Kortelainen, Pertti Martikainen",1999-09-08,bot,1.4,NA,35.2535075132896,NA,52,16.6,NA
 GasHype-163,"Contributed by Sari Juutinen, Tuula Larmola, Pirkko Kortelainen, Pertti Martikainen",1999-11-10,bot,1.4,NA,100.5074628,NA,38,7.9,NA
 GasHype-164,Non-cyanobacterial diazotrophs dominate nitrogen-fixing communities in permafrost thaw ponds,2014-08-21,surf,0.1,461.69,2118.61,NA,NA,NA,NA
-GasHype-164,Non-cyanobacterial diazotrophs dominate nitrogen-fixing communities in permafrost thaw ponds,2014-08-22,surf,0.3,578.28,2735.35,NA,NA,NA,NA
 GasHype-164,Non-cyanobacterial diazotrophs dominate nitrogen-fixing communities in permafrost thaw ponds,2014-08-22,bot,0.3,578.28,2735.35,NA,NA,NA,NA
 GasHype-165,Contributed by Daniele Nizzoli,2013-10-20,surf,0,4.42124100814735,9.77206644117538,10.239,21.5168,14.30758,6.416504230848037e-4
 GasHype-165,Contributed by Daniele Nizzoli,2013-10-20,bot,120,142.026424718831,327.466747754658,0.248,277.0639,7.20718,6.416504230848037e-4
@@ -1637,7 +1636,6 @@ GasHype-278,"Contributed by Sari Juutinen, Tuula Larmola, Pirkko Kortelainen, Pe
 GasHype-278,"Contributed by Sari Juutinen, Tuula Larmola, Pirkko Kortelainen, Pertti Martikainen",1998-08-25,bot,2,NA,71.54235126,NA,59,13.1,NA
 GasHype-279,Basic limnology of fifty-one lakes in Costa Rica,1997-07-15,surf,0,NA,68.1663,9.4,NA,NA,NA
 GasHype-28,Non-cyanobacterial diazotrophs dominate nitrogen-fixing communities in permafrost thaw ponds,2014-08-05,surf,0.1,2.31,296.45,NA,NA,NA,NA
-GasHype-28,Non-cyanobacterial diazotrophs dominate nitrogen-fixing communities in permafrost thaw ponds,2014-08-06,surf,0.4,9.71,418.04,NA,NA,NA,NA
 GasHype-28,Non-cyanobacterial diazotrophs dominate nitrogen-fixing communities in permafrost thaw ponds,2014-08-06,bot,0.4,9.71,418.04,NA,NA,NA,NA
 GasHype-280,Contributed by Joe Rabaey,2021-07-13,surf,0.05,1.539699139037,35.6341350602186,9.52,NA,26.6,NA
 GasHype-280,Contributed by Joe Rabaey,2021-07-13,bot,1.4,38.1415449752791,462.550032208963,1.22,NA,21.8,NA
@@ -1982,24 +1980,6 @@ GasHype-317,Contributed by Stephen McCord,1996-04-01,surf,0,NA,70.9520333997041,
 GasHype-317,Contributed by Stephen McCord,1996-04-01,bot,100,NA,126432.400614795,NA,NA,NA,0.004176998678629816
 GasHype-318,Contributed by Tomoya Iwata,2016-08-10,surf,0,0.0388291602261492,6.64184129850064,7.25,3.23354504792332,26.81,0.002944962642784655
 GasHype-319,Contributed by Carmen Cillero,2014-08-13,surf,0.5,NA,0,8.80694476349162,60,22.1,0.011588519334117779
-GasHype-32,Changing sources and processes sustaining surface CO2 and CH4 fluxes along a tropical river to reservoir system,2017-04-20,surf,0.1,0.20408515279247,17.5355873452286,7.67296402666667,5.583740535,30.5266666666667,NA
-GasHype-32,Changing sources and processes sustaining surface CO2 and CH4 fluxes along a tropical river to reservoir system,2017-04-22,surf,0.4,0.099568790912422,13.3676519609078,7.44878378,6.353565441,30.26,NA
-GasHype-32,Changing sources and processes sustaining surface CO2 and CH4 fluxes along a tropical river to reservoir system,2017-04-24,surf,0.1,0.110897713078706,13.4400136113944,6.984082548,NA,30.72,NA
-GasHype-32,Changing sources and processes sustaining surface CO2 and CH4 fluxes along a tropical river to reservoir system,2017-04-29,surf,0.1,1.19510514240563,19.8437462582664,7.593213442,23.3349972,30.63,NA
-GasHype-32,Changing sources and processes sustaining surface CO2 and CH4 fluxes along a tropical river to reservoir system,2018-02-28,surf,0.4,0.0462986732145686,12.4436614806613,7.399209716,5.808783751,30.38,0.0019121350128543878
-GasHype-32,Changing sources and processes sustaining surface CO2 and CH4 fluxes along a tropical river to reservoir system,2018-03-01,surf,0.1,0.0485911683808124,11.5159472372414,1.319916711,NA,30.6,0.002776351010251542
-GasHype-32,Changing sources and processes sustaining surface CO2 and CH4 fluxes along a tropical river to reservoir system,2018-03-03,surf,0.3,0.0748569604764319,16.293740657319,7.42189126,4.600246453,30.265,NA
-GasHype-32,Changing sources and processes sustaining surface CO2 and CH4 fluxes along a tropical river to reservoir system,2018-03-05,surf,0.4,0.253360826436415,30.4261914735776,7.380652089,9.391585001,30.85,NA
-GasHype-32,Changing sources and processes sustaining surface CO2 and CH4 fluxes along a tropical river to reservoir system,2018-03-06,surf,0.3,0.0277429471521584,21.0003938470875,7.49199785,8.486485693,29.46,0.0040183350085789115
-GasHype-32,Changing sources and processes sustaining surface CO2 and CH4 fluxes along a tropical river to reservoir system,2018-03-09,surf,0.4,0.155077701766817,31.234036483611,7.4569445545,7.09402522,29.88,NA
-GasHype-32,Changing sources and processes sustaining surface CO2 and CH4 fluxes along a tropical river to reservoir system,2018-03-10,surf,0.4,0.0774229882889827,25.354800479187,7.360032504,NA,29.53,0.003102949451588805
-GasHype-32,Changing sources and processes sustaining surface CO2 and CH4 fluxes along a tropical river to reservoir system,2018-03-12,surf,0.3,0.0564074643319442,17.6054233229761,7.483750016,NA,31.3,0.00352723946659384
-GasHype-32,Changing sources and processes sustaining surface CO2 and CH4 fluxes along a tropical river to reservoir system,2018-08-13,surf,0.2,0.153641597516674,16.1404283808277,7.248272073,3.636176742,31.645,0.003584048269847409
-GasHype-32,Changing sources and processes sustaining surface CO2 and CH4 fluxes along a tropical river to reservoir system,2018-08-14,surf,0.3,0.163325487088019,9.91670163923577,7.470036531,4.074450019,31.72,NA
-GasHype-32,Changing sources and processes sustaining surface CO2 and CH4 fluxes along a tropical river to reservoir system,2018-08-15,surf,0.3,0.143538533787175,11.7564613571537,7.37235522333333,4.47900996625,31.55,0.0034619890791823702
-GasHype-32,Changing sources and processes sustaining surface CO2 and CH4 fluxes along a tropical river to reservoir system,2018-08-16,surf,0.3,0.111770330882178,12.5620866316395,6.4580544505,NA,31.825,0.0027766209483561224
-GasHype-32,Changing sources and processes sustaining surface CO2 and CH4 fluxes along a tropical river to reservoir system,2018-08-24,surf,0.2,0.247034564727449,15.9188869623369,6.9932950535,5.760116467,30.88,0.006020275308488975
-GasHype-32,Changing sources and processes sustaining surface CO2 and CH4 fluxes along a tropical river to reservoir system,2018-08-27,surf,0.2,0.199313336695095,13.9156797759626,7.1263464265,5.81068646125,30.8725,NA
 GasHype-32,Patterns and Regulation of Hypolimnetic CO2 and CH4 in a Tropical Reservoir Using a Process-Based Modeling Approach,2016-12-05,surf,10,0.083016935271894,29.3983735714432,7.164969704,NA,29.52,0.002094660759674502
 GasHype-32,Patterns and Regulation of Hypolimnetic CO2 and CH4 in a Tropical Reservoir Using a Process-Based Modeling Approach,2017-04-27,surf,0.6,0.0285478343645249,15.9916980251878,7.11655547,NA,30.28,0.0038674012675162166
 GasHype-32,Patterns and Regulation of Hypolimnetic CO2 and CH4 in a Tropical Reservoir Using a Process-Based Modeling Approach,2018-03-06,surf,0.3,0.0277429471521584,21.0003938470875,7.49199785,8.486485693,29.46,0.0040183350085789115
@@ -2996,7 +2976,6 @@ GasHype-415,"Contributed by Sari Juutinen, Tuula Larmola, Pirkko Kortelainen, Pe
 GasHype-415,"Contributed by Sari Juutinen, Tuula Larmola, Pirkko Kortelainen, Pertti Martikainen",1998-06-16,bot,1.5,NA,46.2138735693109,NA,14,13.8,NA
 GasHype-415,"Contributed by Sari Juutinen, Tuula Larmola, Pirkko Kortelainen, Pertti Martikainen",1998-08-25,bot,1.5,NA,34.0259050660105,NA,11,13.2,NA
 GasHype-415,"Contributed by Sari Juutinen, Tuula Larmola, Pirkko Kortelainen, Pertti Martikainen",1998-12-10,bot,1.2,NA,46.610616726512,NA,14,3.7,NA
-GasHype-416,Methane and carbon dioxide emissions from tropical reservoirs: Significance of downstream rivers,2004-11-12,surf,0.1,0.4,70.4,7.2,NA,30.2,0.001075328745909549
 GasHype-417,"Mechanisms regulating CO2 and CH4 dynamics in the Azorean volcanic lakes (Sao Miguel Island, Portugal)",2023-07-15,surf,0,0,13.7130507325303,NA,NA,25.2,0.0030565568088380874
 GasHype-417,"Mechanisms regulating CO2 and CH4 dynamics in the Azorean volcanic lakes (Sao Miguel Island, Portugal)",2023-07-15,bot,25,59.2187979730249,1120.01579985095,NA,NA,12.6,0.0030565568088380874
 GasHype-417,"Mechanisms regulating CO2 and CH4 dynamics in the Azorean volcanic lakes (Sao Miguel Island, Portugal)",2023-12-13,surf,0,0,41.4780254500639,NA,NA,14.3,2.0508834360578358e-4
@@ -3594,7 +3573,6 @@ GasHype-501,"Contributed by Sari Juutinen, Tuula Larmola, Pirkko Kortelainen, Pe
 GasHype-501,"Contributed by Sari Juutinen, Tuula Larmola, Pirkko Kortelainen, Pertti Martikainen",1999-05-24,bot,4.8,NA,278.164565217546,NA,NA,NA,NA
 GasHype-501,"Contributed by Sari Juutinen, Tuula Larmola, Pirkko Kortelainen, Pertti Martikainen",1999-10-25,surf,1,NA,162.179449007038,NA,NA,NA,NA
 GasHype-501,"Contributed by Sari Juutinen, Tuula Larmola, Pirkko Kortelainen, Pertti Martikainen",1999-10-25,bot,5.5,NA,167.269156673474,NA,NA,NA,NA
-GasHype-502,"Contributed by Sari Juutinen, Tuula Larmola, Pirkko Kortelainen, Pertti Martikainen",1999-04-10,surf,0.4,NA,44.9145155958847,NA,87,6.6,NA
 GasHype-503,"Contributed by Sari Juutinen, Tuula Larmola, Pirkko Kortelainen, Pertti Martikainen",1998-04-06,surf,1,NA,82.8612772859971,9.8,8,9.8,0.0011617919823159913
 GasHype-503,"Contributed by Sari Juutinen, Tuula Larmola, Pirkko Kortelainen, Pertti Martikainen",1998-04-06,bot,10,NA,375.2976912,3.6,11,4.4,0.0011617919823159913
 GasHype-503,"Contributed by Sari Juutinen, Tuula Larmola, Pirkko Kortelainen, Pertti Martikainen",1998-04-08,surf,1,0.021,NA,7.53863627486167,8,0.3,6.400442799049131e-4
@@ -3847,7 +3825,6 @@ GasHype-67,Contributed by Isabelle Laurion and Vilmantas Preskienis,2016-07-26,s
 GasHype-67,Contributed by Isabelle Laurion and Vilmantas Preskienis,2016-08-06,surf,0,2.42493813708027,15.2899736851328,12.39,NA,10,3.098581066808525e-4
 GasHype-67,Contributed by Isabelle Laurion and Vilmantas Preskienis,2016-08-06,bot,0.6,2.62010416432165,15.0246312894098,12.39,NA,9.9,3.098581066808525e-4
 GasHype-68,Non-cyanobacterial diazotrophs dominate nitrogen-fixing communities in permafrost thaw ponds,2014-08-07,surf,0.1,15.02,258.21,NA,NA,NA,NA
-GasHype-68,Non-cyanobacterial diazotrophs dominate nitrogen-fixing communities in permafrost thaw ponds,2014-08-08,surf,0.4,165.6,535.3,NA,NA,NA,NA
 GasHype-68,Non-cyanobacterial diazotrophs dominate nitrogen-fixing communities in permafrost thaw ponds,2014-08-09,bot,0.8,789.79,1536.15,NA,NA,NA,NA
 GasHype-69,Contributed by Daniele Nizzoli,2004-01-26,surf,0,0,NA,11.1911901538462,8.9027616,5.2,6.396097616748664e-6
 GasHype-69,Contributed by Daniele Nizzoli,2004-01-26,bot,16,0,NA,11.8,14.9682684,5.1,6.396097616748664e-6
