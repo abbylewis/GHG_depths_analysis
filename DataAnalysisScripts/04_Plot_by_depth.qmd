@@ -43,10 +43,9 @@ full <- data %>%
     "CO[2]",
     "CH[4]"
   )) %>%
-  filter(
-    Depth_m / MaximumDepth_m <= 1,
-    `Concentration (µmol/L)` >= 0
-  )
+  mutate(Depth_m = ifelse(Depth_m > MaximumDepth_m,
+                          MaximumDepth_m,
+                          Depth_m)) 
 
 min <- min(full$`Concentration (µmol/L)`, na.rm = T)
 max <- max(full$`Concentration (µmol/L)`, na.rm = T)

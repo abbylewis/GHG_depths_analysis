@@ -63,7 +63,8 @@ log_vars <- c(
   "SurfaceArea_km2", "MeanDepth_m",
   "MaximumDepth_m", "TP_ugL_mean",
   "bot_buoyancy_frequency", "Osgood",
-  "buoyancy_frequency"
+  "buoyancy_frequency",
+  "dens_dif"
 )
 
 # Set seed to produce consistent RF results
@@ -180,6 +181,7 @@ all <- layer_plot_data %>%
 vars <- c(
   "DO_mgL",
   "SurfaceArea_km2",
+  "MaximumDepth_m",
   "Osgood",
   "TP_ugL_mean",
   "Temp_C",
@@ -205,7 +207,10 @@ for_cor <- all %>%
   select(all_of(c("value", vars, "name", "Layer", "LakeID", "Date", "Source"))) %>%
   na.omit() %>%
   ungroup() %>%
-  pivot_wider(names_from = Layer, values_from = c(value, DO_mgL, Temp_C)) %>%
+  pivot_wider(names_from = Layer, values_from = c(value, DO_mgL,
+                                                  Temp_C
+                                                  )
+              ) %>%
   pivot_wider(names_from = name, values_from = c(value_surf, value_bot)) %>%
   select(
     where(is.numeric),
@@ -248,13 +253,13 @@ for_corrplot <- for_cor %>%
     levels = c(
       "DO_mgL_bot", "DO_mgL_surf", "SurfaceArea_km2", "Osgood",
       "TP_ugL_mean", "Temp_C_bot", "Temp_C_surf",
-      "Absolute_latitude"
+      "Absolute_latitude", "dens_diff", "MaximumDepth_m"
     ),
     labels = c(
       ":Bottom~DO~(mg~L^-1)", ":Surface~DO~(mg~L^-1)", ":SA~(log~km^2)",
       ":Osgood~index~(log)",
       ":TP~(log~µg~L^-1)", ":Bottom~temp~(ºC)", ":Surface~temp~(ºC)",
-      ":Abs.~latitude"
+      ":Abs.~latitude", "dens_diff", "MaximumDepth_m"
     )
   )) %>%
   pivot_wider() %>%

@@ -43,7 +43,7 @@ generate_plot_ratio_permutation <- function(all_co2,
     ungroup() %>%
     mutate(
       across(all_of(log_select), log),
-      mutate(across(where(is.character), as.factor))
+      across(where(is.character), as.factor)
     ) %>%
     select(all_of(c("value", vars, "LakeID"))) %>%
     na.omit()
@@ -53,7 +53,7 @@ generate_plot_ratio_permutation <- function(all_co2,
     ungroup() %>%
     mutate(
       across(all_of(log_select), log),
-      mutate(across(where(is.character), as.factor))
+      across(where(is.character), as.factor)
     ) %>%
     select(all_of(c("value", vars, "LakeID"))) %>%
     na.omit()

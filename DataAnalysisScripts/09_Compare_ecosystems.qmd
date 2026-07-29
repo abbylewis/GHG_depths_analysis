@@ -1,0 +1,281 @@
+---
+title: "Ecosystems"
+format: html
+editor: visual
+---
+
+Load packages
+
+```{r}
+library(tidyverse)
+```
+
+Ours
+
+```{r}
+# Load data
+data <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/2220/5/8553f79eeea9a6f722fc50d733ca9a74") %>%
+  filter(Focal_site) # Cleaned
+metadata <- read_delim("https://pasta.lternet.edu/package/data/eml/edi/2220/5/81f003749ad039837475571390b20190") %>%
+  filter(Focal_site)
+layer_sum <- read_csv("../CompiledData/layer_sum.csv")
+
+layer_means <- layer_sum %>%
+  pivot_longer(cols = CO2_umolL:CH4_umolL) %>%
+  group_by(LakeID, name, Layer, Date) %>%
+  filter(!is.na(value)) %>%
+  mutate(
+    value = mean(value, na.rm = T),
+    yday = yday(Date),
+    year = year(Date),
+    
+  ) %>%
+  group_by(LakeID, name, Layer) %>%
+  summarize(
+    value = mean(value, na.rm = T)
+  ) %>%
+  rename(Ecosystem = Layer) %>%
+  mutate(Ecosystem = ifelse(Ecosystem == "surf",
+                            "Lake\nsurface",
+                            "Lake\nbottom"))
+```
+
+Emily's
+
+```{r}
+#https://portal.edirepository.org/nis/mapbrowse?packageid=knb-lter-ntl.420.3
+#https://essd.copernicus.org/articles/15/2879/2023/essd-15-2879-2023.html
+streams <- read_csv("https://pasta.lternet.edu/package/data/eml/knb-lter-ntl/420/3/ba3e270bcab8ace5d157c995e4b791e4")
+
+stream_sum = streams %>%
+  filter(CH4mean >= 0) %>%
+  group_by(Source_ID, Site_ID) %>%
+  summarize(value = mean(CH4mean, na.rm = T)) %>%
+  mutate(name = "CH4_umolL",
+         Ecosystem = "Streams")
+```
+
+Oceans
+
+```{r}
+#https://memento.geomar.de/contact.html
+ocean <- readxl::read_excel("../CompiledData/nbparameter_data_export_2026-07-27.xls") %>%
+  mutate(ch4 = as.numeric(ch4))
+
+ocean_sum <- ocean %>%
+  mutate(name = "CH4_umolL",
+         value = ch4 / 1000) %>% # convert nmol/umol
+  filter(!ch4 == -999,
+         ch4 >= 0,
+         !grepl("estuary", Label, ignore.case = T)) %>%
+  select(name, value) %>%
+  mutate(Ecosystem = "Ocean\n(all)")
+
+ocean_surface <- ocean %>%
+  mutate(name = "CH4_umolL",
+         value = ch4 / 1000) %>% # convert nmol/umol
+  filter(!ch4 == -999,
+         ch4 >= 0,
+         !grepl("estuary", Label, ignore.case = T),
+         `Depth [m]`<5) %>%
+  mutate(Ecosystem = "Ocean\nsurface")
+
+ocean_surface %>%
+  ggplot(aes(x = Latitude, y=Longitude))+
+  geom_point()
+
+library(terra)
+
+# Read raster without loading all values into memory
+r <- rast("data.tif")
+
+# Point data with longitude and latitude
+points <- data.frame(
+  longitude = c(-76.5, -75.8),
+  latitude = c(38.9, 39.2)
+)
+
+# Extract raster values
+values <- extract(
+  r,
+  points[, c("longitude", "latitude")]
+)
+
+values
+```
+
+Estuary
+
+```{r}
+#https://datadryad.org/dataset/doi:10.5061/dryad.7m0cfxpwz
+#https://onlinelibrary.wiley.com/doi/abs/10.1111/gcb.16233?casa_token=mjCDhe9Wxa4AAAAA:Y_SAwfde15RDOpb_M8HZE4l-mftS2RXxFXwNPFJKI1aCas4UiiWbbw1Cdj-Urv3Pxcxg8lv7Y0Ym08Y
+estuary <- read_csv("../CompiledData/estuary.csv")
+
+estuary_sum <- estuary %>%
+  select(CH4_umolL_Mean) %>%
+  rename(CH4_umolL = CH4_umolL_Mean) %>%
+  filter(!is.na(CH4_umolL),
+         CH4_umolL >= 0) %>%
+  pivot_longer(CH4_umolL) %>%
+  mutate(Ecosystem = "Estuaries")
+```
+
+Tropical rivers
+
+```{r}
+#https://www.nature.com/articles/s44221-025-00522-8
+tropical_rivers <- read_csv("https://raw.githubusercontent.com/ClementDuvert/GHG.flux.tropics/refs/heads/main/Data/dataset_rivers_reduced.csv")
+
+tropical_rivers_sum <- tropical_rivers %>%
+  select(CO2_uM, CH4_uM) %>%
+  rename(CO2_umolL = CO2_uM,
+         CH4_umolL = CH4_uM) %>%
+  pivot_longer(cols = c(CO2_umolL, CH4_umolL)) %>%
+  filter(value >= 0) %>%
+  mutate(Ecosystem = "Tropical\nrivers")
+```
+
+Flowing freshwaters
+
+```{r}
+#https://www.nature.com/articles/s41597-022-01915-0#Sec6
+#https://figshare.com/articles/dataset/CDFLOW_-_A_30-year_dataset_on_CO2_in_flowing_freshwaters_in_the_United_States/19787326
+
+flow <- read_csv("../CompiledData/CDFLOW.csv") %>%
+  filter(`CO2.mg/l` >= 0) %>%
+  group_by(COMID) %>%
+  summarize(name = "CO2_umolL",
+            value = mean(`CO2.mg/l`, na.rm = T) * 1000 / 44.01) %>%
+  mutate(Ecosystem = "Flowing\nfreshwaters")
+```
+
+Combined
+
+```{r}
+comb <- bind_rows(stream_sum,
+                  tropical_rivers_sum,
+                  estuary_sum,
+                  ocean_sum,
+                  ocean_surface,
+                  flow) %>%
+  bind_rows(layer_means) %>%
+  mutate(Ecosystem = factor(Ecosystem,
+                            levels = c(
+                              "Ocean\nsurface",
+                              "Ocean\n(all)",
+                              "Estuaries",
+                              "Streams",
+                                "Flowing\nfreshwaters",
+                              "Tropical\nrivers",
+                                "Lake\nsurface",
+                                "Lake\nbottom"))) %>%
+  mutate(name = recode_values(name,
+                              "CH4_umolL"~"CH[4]",
+                              "CO2_umolL"~"CO[2]"),
+         study = ifelse(grepl("Lake", Ecosystem),
+                        "This study",
+                        NA)) %>%
+  filter(value >= 0) %>%
+  group_by(name) %>%
+    mutate(
+      value = if_else(
+        value == 0,
+        min(value[value > 0], na.rm = TRUE),
+        value,
+        missing = NA
+      )
+    )
+
+text_init = comb %>%
+  group_by(Ecosystem, name, study) %>%
+  summarize(n = sum(!is.na(value)),
+            median = median(value, na.rm = T),
+            label_median = paste0("median =\n", format(median, drop0trailing = T, digits = 1)),
+            label = paste0("n =\n", n))
+
+# Consistent text positions
+text <- comb %>%
+  group_by(name) %>%
+  summarize(
+    xmin = min(value, na.rm = TRUE),
+    xmax = max(value, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    xpos = 10^(log10(xmin) + 0.01 * (log10(xmax) - log10(xmin))),
+    xpos2 = 10^(log10(xmax) - 0.01 * (log10(xmax) - log10(xmin))),
+    ypos = 10^(log10(xmax) + 0.14 * (log10(xmax) - log10(xmin)))
+  ) %>%
+  left_join(text_init, by = "name") %>%
+  mutate(
+    #xpos = ifelse(grepl("Ocean", Ecosystem) & name == "CH[4]",
+         #              xpos2, xpos),
+         #hjust = ifelse(grepl("Ocean", Ecosystem) & name == "CH[4]",
+         #              1, 0),
+    xpos = xpos2,
+         hjust = 1) %>%
+  mutate(label = ifelse(Ecosystem %in% c("Ocean\nsurface", "Flowing\nfreshwaters"), label, sub("n =\n", "", label)),
+         label_median = ifelse(Ecosystem %in% c("Ocean\nsurface", "Flowing\nfreshwaters"), label_median, sub("median =\n", "", label_median)))
+
+row_height <- 0.9 #cm
+
+n_ch4 <- n_distinct(filter(comb, name == "CH[4]")$Ecosystem)
+n_co2 <- n_distinct(filter(comb, name == "CO[2]")$Ecosystem)
+
+co2 <- make_ecosystem_plot(comb, "CO[2]", text) +
+  ggh4x::force_panelsizes(
+    rows = unit((n_co2 + 0.25) * row_height, "cm")
+  ) +
+  theme(
+    plot.margin = margin(
+      b = row_height * (n_ch4 - n_co2) + 0.2,
+      t = 0.2,
+      l = 0.2,
+      r = 0.2,
+      unit = "cm"
+    )
+  )
+
+ch4 <- make_ecosystem_plot(comb, "CH[4]", text) +
+  ggh4x::force_panelsizes(
+    rows = unit((n_ch4 + 0.25) * row_height, "cm")
+  ) +
+  theme(
+    plot.margin = margin(
+      b = 0.2,
+      t = 0.2,
+      l = 0.2,
+      r = 0.2,
+      unit = "cm"
+    )
+  )
+
+#final <- ggpubr::ggarrange(ch4, co2)
+#final
+#ggsave(plot = final, "../Figures/ecosystem_comparison.png", 
+#       width = 6, height = 3.5)
+
+final2 <- make_ecosystem_plot_wide(comb, text)
+final2
+ggsave(plot = final2, "../Figures/ecosystem_comparison2.png", 
+       width = 5.5, height = 3.5)
+```
+
+```{r}
+library(dplyr)
+library(rstatix)
+
+kw_results <- comb %>%
+  filter(value >= 0) %>%
+  group_by(name) %>%
+  rstatix::kruskal_test(value ~ Ecosystem)
+
+kw_results
+
+pairwise <- comb %>%
+  filter(value >= 0) %>%
+  group_by(name) %>%
+  rstatix::dunn_test(value ~ Ecosystem, p.adjust.method = "BH")
+
+pairwise
+```

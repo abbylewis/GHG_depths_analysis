@@ -49,7 +49,7 @@ generate_plot_splmRF <- function(all, vars, var_names, gas_name, log_vars, pSat 
     ungroup() %>%
     mutate(
       across(all_of(log_select), log),
-      mutate(across(where(is.character), as.factor))
+      across(where(is.character), as.factor)
     ) %>%
     select(all_of(c("value", vars))) %>%
     na.omit() %>%
@@ -64,7 +64,7 @@ generate_plot_splmRF <- function(all, vars, var_names, gas_name, log_vars, pSat 
     ungroup() %>%
     mutate(
       across(all_of(log_select), log),
-      mutate(across(where(is.character), as.factor))
+      across(where(is.character), as.factor)
     ) %>%
     select(all_of(c("value", vars))) %>%
     na.omit() %>%

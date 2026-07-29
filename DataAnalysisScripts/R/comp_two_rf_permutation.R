@@ -27,7 +27,7 @@ comp_two_rf_permutation <- function(all,
     ungroup() %>%
     mutate(
       across(all_of(log_select), log),
-      mutate(across(where(is.character), as.factor))
+      across(where(is.character), as.factor)
     ) %>%
     select(all_of(c("value", vars_simple, vars, "LakeID", "name", "Layer")))
 
