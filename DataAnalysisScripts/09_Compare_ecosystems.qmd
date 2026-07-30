@@ -14,9 +14,9 @@ Ours
 
 ```{r}
 # Load data
-data <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/2220/5/8553f79eeea9a6f722fc50d733ca9a74") %>%
+data <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/2220/5/8553f79eeea9a6f722fc50d733ca9a74?key=n9dYnNE5ReoA53SyzOCNgcPzLZA") %>%
   filter(Focal_site) # Cleaned
-metadata <- read_delim("https://pasta.lternet.edu/package/data/eml/edi/2220/5/81f003749ad039837475571390b20190") %>%
+metadata <- read_delim("https://pasta.lternet.edu/package/data/eml/edi/2220/5/81f003749ad039837475571390b20190?key=n9dYnNE5ReoA53SyzOCNgcPzLZA") %>%
   filter(Focal_site)
 layer_sum <- read_csv("../CompiledData/layer_sum.csv")
 
@@ -227,7 +227,7 @@ co2 <- make_ecosystem_plot(comb, "CO[2]", text) +
     rows = unit((n_co2 + 0.25) * row_height, "cm")
   ) +
   theme(
-    plot.margin = margin(
+    plot.margin = ggplot2::margin(
       b = row_height * (n_ch4 - n_co2) + 0.2,
       t = 0.2,
       l = 0.2,
@@ -241,7 +241,7 @@ ch4 <- make_ecosystem_plot(comb, "CH[4]", text) +
     rows = unit((n_ch4 + 0.25) * row_height, "cm")
   ) +
   theme(
-    plot.margin = margin(
+    plot.margin = ggplot2::margin(
       b = 0.2,
       t = 0.2,
       l = 0.2,

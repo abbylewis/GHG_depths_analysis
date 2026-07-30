@@ -113,7 +113,8 @@ make_ecosystem_plot_wide <- function(comb, text){
         color = Ecosystem
       )) + 
     scale_y_log10(labels = scales::label_comma(drop0trailing = T,
-                                               accuracy = 0.001))+ 
+                                               accuracy = 0.001),
+                  minor_breaks = minor_log_breaks)+ 
     ylab("Concentration (µM)")+ 
     scale_color_manual(values = c(rep("grey70", n_distinct(comb$Ecosystem) - 2), 
                                   "turquoise4", "turquoise4") ) + 
@@ -131,4 +132,16 @@ make_ecosystem_plot_wide <- function(comb, text){
           ),
           panel.grid.major.y = element_line(color = "grey90", size = 0.5), 
           panel.grid.minor.y = element_line(color = "grey95", size = 0.25))
+}
+
+minor_log_breaks <- function(lims) {
+  exponents <- seq(
+    floor(log10(min(lims))),
+    ceiling(log10(max(lims)))
+  )
+  
+  breaks <- outer(1, 10^exponents)
+  
+  breaks <- as.vector(breaks)
+  breaks[breaks > min(lims) & breaks < max(lims)]
 }

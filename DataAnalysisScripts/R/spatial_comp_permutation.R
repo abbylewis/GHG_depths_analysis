@@ -13,7 +13,8 @@ source(here::here("DataAnalysisScripts", "R", "permutation_rf.R"))
 #'
 #' @returns Drivers figure
 #'
-generate_plot_permutation <- function(all, vars, var_names, gas_name, log_vars,
+spatial_comp_permutation <- function(all_list, all_list_names,
+                                      vars, var_names, gas_name, log_vars,
                                       pSat = F, reps = 100) {
   vars <- vars[!vars %in% c("LakeID", "Latitude", "Longitude")]
   colors <- c("#69140E", "#40476D", "#1098F7", "#3F67B0","#0C7C59", "#E65F5C", "gray70", "grey70", "grey70")
@@ -36,91 +37,149 @@ generate_plot_permutation <- function(all, vars, var_names, gas_name, log_vars,
   levels_used <- recode(vars, !!!var_names_part)
   log_select <- log_vars[log_vars %in% vars]
 
-  ### SET UP ###
-  for_rf_surf <- all %>%
-    filter(
-      name == gas_name,
-      Layer == "surf",
-      if_all(all_of(log_select), \(x) x > 0)
-    ) %>%
-    ungroup() %>%
-    mutate(
-      across(all_of(log_select), log),
-      across(where(is.character), as.factor)
-    ) %>%
-    select(all_of(c("value", vars, "LakeID"))) %>%
-    na.omit()
-
-  for_rf_bot <- all %>%
-    filter(
-      name == gas_name,
-      Layer == "bot",
-      if_all(all_of(log_select), \(x) x > 0)
-    ) %>%
-    ungroup() %>%
-    mutate(
-      across(all_of(log_select), log),
-      across(where(is.character), as.factor)
-    ) %>%
-    select(all_of(c("value", vars, "LakeID"))) %>%
-    na.omit()
-
-  num_vars <- vars[sapply(for_rf_surf[vars], is.numeric)]
-  cat_vars <- vars[sapply(for_rf_surf[vars], is.factor)]
-
-  ### RUN RANDOM FOREST ###
-  rf_surf <- lapply(1:reps, function(x) {
-    permutation_rf(x, for_rf_surf, num_vars, cat_vars)
-  })
-  rf_bot <- lapply(1:reps, function(x) {
-    permutation_rf(x, for_rf_bot, num_vars, cat_vars)
-  })
-
-  # Unpack
-  surf_r2 <- mean(sapply(rf_surf, "[[", 1))
-  partials_df_surf <- bind_rows(sapply(rf_surf, "[", 2))
-  ImpData_surf <- bind_rows(sapply(rf_surf, "[", 3)) %>%
-    mutate(Layer = "Surface")
-
-  # Unpack
-  bot_r2 <- mean(sapply(rf_bot, "[[", 1))
-  partials_df_bot <- bind_rows(sapply(rf_bot, "[", 2))
-  ImpData_bot <- bind_rows(sapply(rf_bot, "[", 3)) %>%
-    mutate(Layer = "Bottom")
+  importance_list <- vector("list", length(all_list))
+  partials_list   <- vector("list", length(all_list))
+  rug_list        <- vector("list", length(all_list))
+  
+  for(i in 1:length(all_list)){
+    all <- all_list[[i]]
+    
+    ### SET UP ###
+    for_rf_surf <- all %>%
+      filter(
+        name == gas_name,
+        Layer == "surf",
+        if_all(all_of(log_select), \(x) x > 0)
+      ) %>%
+      ungroup() %>%
+      mutate(
+        across(all_of(log_select), log),
+        across(where(is.character), as.factor)
+      ) %>%
+      select(all_of(c("value", vars, "LakeID"))) %>%
+      na.omit()
+    
+    for_rf_bot <- all %>%
+      filter(
+        name == gas_name,
+        Layer == "bot",
+        if_all(all_of(log_select), \(x) x > 0)
+      ) %>%
+      ungroup() %>%
+      mutate(
+        across(all_of(log_select), log),
+        across(where(is.character), as.factor)
+      ) %>%
+      select(all_of(c("value", vars, "LakeID"))) %>%
+      na.omit()
+    
+    num_vars <- vars[sapply(for_rf_surf[vars], is.numeric)]
+    cat_vars <- vars[sapply(for_rf_surf[vars], is.factor)]
+    
+    ### RUN RANDOM FOREST ###
+    rf_surf <- lapply(1:reps, function(x) {
+      permutation_rf(x, for_rf_surf, num_vars, cat_vars)
+    })
+    rf_bot <- lapply(1:reps, function(x) {
+      permutation_rf(x, for_rf_bot, num_vars, cat_vars)
+    })
+    
+    # Unpack
+    surf_r2 <- mean(sapply(rf_surf, "[[", 1))
+    partials_df_surf <- bind_rows(sapply(rf_surf, "[", 2))
+    ImpData_surf <- bind_rows(sapply(rf_surf, "[", 3)) %>%
+      mutate(Layer = "Surface")
+    
+    # Unpack
+    bot_r2 <- mean(sapply(rf_bot, "[[", 1))
+    partials_df_bot <- bind_rows(sapply(rf_bot, "[", 2))
+    ImpData_bot <- bind_rows(sapply(rf_bot, "[", 3)) %>%
+      mutate(Layer = "Bottom")
+    
+    ImpData <- bind_rows(ImpData_surf, ImpData_bot)
+    
+    var_names_imp <- sub("\n", " ", var_names)
+    imp_levels_used <- rev(recode(vars, !!!var_names_imp))
+    names(colors) <- var_names_imp[vars]
+    
+    surf_name <- paste0(
+      "italic(n)*' = ", length(unique(for_rf_surf$LakeID)),
+      "; mean '*R^2*' = ", round(surf_r2, 2), "'"
+    )
+    bot_name <- paste0(
+      "italic(n)*' = ", length(unique(for_rf_bot$LakeID)),
+      "; mean '*R^2*' = ", round(bot_r2, 2), "'"
+    )
+    
+    importance <- ImpData %>%
+      mutate(
+        Var.Names = recode(Var.Names, !!!var_names_imp),
+        Var.Names = factor(Var.Names, levels = imp_levels_used),
+        Location = all_list_names[i],
+        Stats = case_match(
+          Layer,
+          "Surface" ~ surf_name,
+          "Bottom" ~ bot_name
+        )
+      ) %>%
+      group_by(Var.Names, Layer, Location, Stats) %>%
+      summarize(
+        sd = sd(`%IncMSE`, na.rm = T),
+        `%IncMSE` = mean(`%IncMSE`, na.rm = T)
+      )
+    
+    for_rug_surf <- for_rf_surf %>%
+      select(all_of(num_vars)) %>%
+      pivot_longer(everything(), names_to = "var", values_to = "x") %>%
+      mutate(
+        var = recode(var, !!!var_names_part),
+        var = factor(var, levels = levels_used)
+      )
+    for_rug_bot <- for_rf_bot %>%
+      select(all_of(num_vars)) %>%
+      pivot_longer(everything(), names_to = "var", values_to = "x") %>%
+      mutate(
+        var = recode(var, !!!var_names_part),
+        var = factor(var, levels = levels_used)
+      )
+    
+    for_rug <- for_rug_surf %>%
+      mutate(Layer = "Surface") %>%
+      bind_rows(for_rug_bot %>% mutate(Layer = "Bottom")) %>%
+      mutate(Layer = factor(Layer, levels = c("Surface", "Bottom")),
+             Location = all_list_names[i],
+             x = ifelse(var %in% recode(log_vars, !!!var_names_part),
+                        exp(x),
+                        x
+      ))
+    
+    partials_sorted <- partials_df_surf %>%
+      mutate(Layer = "Surface") %>%
+      bind_rows(partials_df_bot %>% mutate(Layer = "Bottom")) %>%
+      mutate(
+        var = recode(var, !!!var_names_part),
+        var = factor(var, levels = levels_used),
+        y = exp(y),
+        Layer = factor(Layer, levels = c("Surface", "Bottom")),
+        Location = all_list_names[i],
+        x = ifelse(var %in% recode(log_vars, !!!var_names_part),
+                   exp(x),
+                   x
+        )
+      )
+    
+    importance_list[[i]] <- importance
+    partials_list[[i]]   <- partials_sorted
+    rug_list[[i]]        <- for_rug
+  }
+  
+  importance <- bind_rows(importance_list)
+  partials_sorted <- bind_rows(partials_list)
+  for_rug <- bind_rows(rug_list)
 
   ### PLOT ###
   # Visualize variable importance ----------------------------------------------
-  ImpData <- bind_rows(ImpData_surf, ImpData_bot)
-
-  var_names_imp <- sub("\n", " ", var_names)
-  imp_levels_used <- rev(recode(vars, !!!var_names_imp))
-  names(colors) <- var_names_imp[vars]
-
-  surf_name <- paste0(
-    "'Surface ('*italic(n)*' = ", length(unique(for_rf_surf$LakeID)),
-    "; mean '*R^2*' = ", round(surf_r2, 2), ")'"
-  )
-  bot_name <- paste0(
-    "'Bottom ('*italic(n)*' = ", length(unique(for_rf_bot$LakeID)),
-    "; mean '*R^2*' = ", round(bot_r2, 2), ")'"
-  )
-
-  importance <- ImpData %>%
-    mutate(
-      Var.Names = recode(Var.Names, !!!var_names_imp),
-      Var.Names = factor(Var.Names, levels = imp_levels_used),
-      Layer = case_match(
-        Layer,
-        "Surface" ~ surf_name,
-        "Bottom" ~ bot_name
-      ),
-      Layer = factor(Layer, levels = c(surf_name, bot_name))
-    ) %>%
-    group_by(Var.Names, Layer) %>%
-    summarize(
-      sd = sd(`%IncMSE`, na.rm = T),
-      `%IncMSE` = mean(`%IncMSE`, na.rm = T)
-    ) %>%
+  importance_plot <- importance %>%
     ggplot(aes(x = `%IncMSE`, y = Var.Names, fill = Var.Names)) +
     geom_col() +
     geom_errorbar(
@@ -130,6 +189,10 @@ generate_plot_permutation <- function(all, vars, var_names, gas_name, log_vars,
       ),
       width = 0.1
     ) +
+    geom_text(aes(x = 25, label = Stats),
+              hjust = 1, data = . %>% filter(Var.Names == 	
+                                               "Abs.~lat.~(DD)"),
+              parse = T, size = 3) +
     xlab("Variable importance (% increase in MSE)") +
     scale_fill_manual(values = colors) +
     egg::theme_article() +
@@ -145,53 +208,13 @@ generate_plot_permutation <- function(all, vars, var_names, gas_name, log_vars,
     ) +
     scale_x_continuous(n.breaks = 4) +
     scale_y_discrete(labels = parse(text = imp_levels_used)) +
-    facet_wrap(~Layer, labeller = label_parsed)
-
-  # Set up rug plots
-  for_rug_surf <- for_rf_surf %>%
-    select(all_of(num_vars)) %>%
-    pivot_longer(everything(), names_to = "var", values_to = "x") %>%
-    mutate(
-      var = recode(var, !!!var_names_part),
-      var = factor(var, levels = levels_used)
-    )
-  for_rug_bot <- for_rf_bot %>%
-    select(all_of(num_vars)) %>%
-    pivot_longer(everything(), names_to = "var", values_to = "x") %>%
-    mutate(
-      var = recode(var, !!!var_names_part),
-      var = factor(var, levels = levels_used)
-    )
-
-  for_rug <- for_rug_surf %>%
-    mutate(Layer = "Surface") %>%
-    bind_rows(for_rug_bot %>% mutate(Layer = "Bottom")) %>%
-    mutate(Layer = factor(Layer, levels = c("Surface", "Bottom"))) %>%
-    mutate(x = ifelse(var %in% recode(log_vars, !!!var_names_part),
-      exp(x),
-      x
-    ))
-
-  # Plot partials
-  partials_sorted <- partials_df_surf %>%
-    mutate(Layer = "Surface") %>%
-    bind_rows(partials_df_bot %>% mutate(Layer = "Bottom")) %>%
-    mutate(
-      var = recode(var, !!!var_names_part),
-      var = factor(var, levels = levels_used),
-      y = exp(y),
-      Layer = factor(Layer, levels = c("Surface", "Bottom")),
-      x = ifelse(var %in% recode(log_vars, !!!var_names_part),
-        exp(x),
-        x
-      )
-    )
+    facet_grid(Location~Layer, labeller = label_parsed)
 
   names(colors) <- var_names_part[vars]
   type <- ifelse(pSat, "% saturation", "concentration (µM)")
 
   part <- partials_sorted %>%
-    group_by(Layer, x, var) %>%
+    group_by(Layer, x, var, Location) %>%
     summarize(
       sd = sd(y, na.rm = T),
       y = mean(y, na.rm = T)
@@ -215,15 +238,15 @@ generate_plot_permutation <- function(all, vars, var_names, gas_name, log_vars,
       length = unit(0.05, "inch"), alpha = 0.2
     ) +
     coord_cartesian(clip = "off") +
-    ggh4x::facet_grid2(Layer ~ var,
+    ggh4x::facet_nested(Layer + Location ~ var,
       scales = "free",
       switch = "both",
       labeller = label_parsed
     ) +
-    scale_color_manual(values = colors) +
-    scale_fill_manual(values = colors) +
     labs(x = NULL) +
     egg::theme_article() +
+    scale_color_manual(values = colors) +
+    scale_fill_manual(values = colors) +
     theme(
       panel.grid.major = element_line(color = "grey90", size = 0.5),
       strip.placement = "outside", # format to look like title
@@ -287,7 +310,7 @@ generate_plot_permutation <- function(all, vars, var_names, gas_name, log_vars,
 
   # Combine
   plot_gas <- ggpubr::ggarrange(
-    importance,
+    importance_plot,
     part,
     ncol = 1, heights = c(1, 1.7),
     labels = c("a", "b"),

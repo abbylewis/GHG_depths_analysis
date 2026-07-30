@@ -18,20 +18,21 @@ source(here::here("DataAnalysisScripts", "R", "pseudo_log_breaks.R"))
 #'
 generate_plot_splmRF <- function(all, vars, var_names, gas_name, log_vars, pSat = F) {
   vars_reg <- vars[!vars %in% c("LakeID", "Latitude", "Longitude")]
-  colors <- c("#69140E", "#40476D", "#1098F7", "#0C7C59", "#E65F5C", "gray70", "grey70", "grey70")
+  colors <- c("#69140E", "#40476D", "#1098F7", "#3F67B0","#0C7C59", "#E65F5C", "gray70", "grey70", "grey70")
   names(colors) <- vars_reg
 
   var_names_part <- c(
     "DO_mgL" = "DO~(mg~L^-1)",
     "TP_ugL_mean" = "TP~(µg~L^-1)",
-    "Absolute_latitude" = "Abs~lat~(DD)",
+    "Absolute_latitude" = "Abs.~lat.~(DD)",
     "SurfaceArea_km2" = "SA~(km^2)",
-    "MaximumDepth_m" = "Max~depth~(m)",
+    "MaximumDepth_m" = "Max.~depth~(m)",
     "MeanDepth_m" = "Mean~depth~(m)",
-    "Temp_C" = "Temp~(ºC)",
-    "Osgood" = "Osgood",
+    "Temp_C" = "Temp.~(ºC)",
+    "Osgood" = "Osgood~index",
+    "dens_dif" = "Dens.~diff.~(kg~m^-3)",
     "yday" = "Day~of~year",
-    "buoyancy_frequency" = "Buoy~freq~(s^-2)",
+    "buoyancy_frequency" = "Buoy.~freq.~(s^-2)",
     "daylength" = "Day~length~(h)",
     "LakeID" = "Lake ID"
   )
@@ -274,7 +275,7 @@ generate_plot_splmRF <- function(all, vars, var_names, gas_name, log_vars, pSat 
     )) +
     facetted_pos_scales(
       x = list(
-        var == "Max~depth~(m)" ~ scale_x_continuous(
+        var == "Max.~depth~(m)" ~ scale_x_continuous(
           trans = scales::pseudo_log_trans(0.01, 10),
           labels = scales::label_comma(drop0trailing = T),
           breaks = c(0.1, 1, 10, 100, 1000)
@@ -284,8 +285,8 @@ generate_plot_splmRF <- function(all, vars, var_names, gas_name, log_vars, pSat 
           labels = scales::label_comma(drop0trailing = T),
           breaks = c(0.1, 1, 10, 100, 1000)
         ),
-        var == "Osgood" ~ scale_x_continuous(
-          trans = scales::pseudo_log_trans(0.001, 10),
+        var == "Osgood~index" ~ scale_x_continuous(
+          trans = scales::pseudo_log_trans(0.01, 10),
           labels = scales::label_comma(drop0trailing = T),
           breaks = c(0.1, 1, 10, 100, 1000)
         ),
@@ -294,10 +295,15 @@ generate_plot_splmRF <- function(all, vars, var_names, gas_name, log_vars, pSat 
           labels = scales::label_comma(drop0trailing = T),
           breaks = c(1, 10, 100, 1000)
         ),
-        var == "Buoy~freq~(s^-2)" ~ scale_x_continuous(
+        var == "Buoy.~freq.~(s^-2)" ~ scale_x_continuous(
           trans = scales::pseudo_log_trans(0.0001, 10),
           labels = scales::label_comma(drop0trailing = T),
           breaks = c(0.001, 0.01, 0.1)
+        ),
+        var == "Dens.~diff.~(kg~m^-3)" ~ scale_x_continuous(
+          trans = scales::pseudo_log_trans(0.001, 10),
+          labels = scales::label_comma(drop0trailing = T),
+          breaks = c(0.01, 0.1, 1)
         ),
         var == "SA~(km^2)" ~ scale_x_continuous(
           trans = scales::pseudo_log_trans(0.0001, 10),

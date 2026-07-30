@@ -25,13 +25,13 @@ library(rLakeAnalyzer)
 library(patchwork)
 
 # Load data from EDI
-data <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/2220/5/ca2482ef3c43f053ae13cdf2bf5ba7a8") %>%
+data <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/2220/5/ca2482ef3c43f053ae13cdf2bf5ba7a8?key=n9dYnNE5ReoA53SyzOCNgcPzLZA") %>%
   filter(Focal_site) # Not cleaned
-cleaned_data <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/2220/5/8553f79eeea9a6f722fc50d733ca9a74") %>%
+cleaned_data <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/2220/5/8553f79eeea9a6f722fc50d733ca9a74?key=n9dYnNE5ReoA53SyzOCNgcPzLZA") %>%
   filter(Focal_site) # Cleaned
-temp <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/2220/5/a101f4f31d3b2aa3dd81490892bd0b15") %>%
+temp <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/2220/5/a101f4f31d3b2aa3dd81490892bd0b15?key=n9dYnNE5ReoA53SyzOCNgcPzLZA") %>%
   filter(Focal_site)
-metadata <- read_delim("https://pasta.lternet.edu/package/data/eml/edi/2220/5/81f003749ad039837475571390b20190") %>%
+metadata <- read_delim("https://pasta.lternet.edu/package/data/eml/edi/2220/5/81f003749ad039837475571390b20190?key=n9dYnNE5ReoA53SyzOCNgcPzLZA") %>%
   filter(Focal_site)
 ```
 
