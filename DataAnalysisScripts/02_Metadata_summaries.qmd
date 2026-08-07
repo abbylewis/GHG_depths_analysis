@@ -49,8 +49,8 @@ depth <- metadata %>%
   group_by(LakeID) %>%
   summarize(MaximumDepth_m = mean(MaximumDepth_m, na.rm = T)) %>%
   ggplot(aes(x = MaximumDepth_m)) +
-  geom_density(data = hylak_shp, aes(x = Depth_avg), color = "gray",
-               fill = "gray90", alpha = .8) +
+  #geom_density(data = hylak_shp, aes(x = Depth_avg), color = "gray",
+   #            fill = "gray90", alpha = .8) +
   geom_density() +
   scale_x_log10(
     breaks = c(1, 10, 100, 1000),
@@ -71,8 +71,8 @@ area <- metadata %>%
   group_by(LakeID) %>%
   summarize(SurfaceArea_km2 = mean(SurfaceArea_km2, na.rm = T)) %>%
   ggplot(aes(x = SurfaceArea_km2)) +
-  geom_density(data = hylak_shp, aes(x = Lake_area), color = "gray",
-               fill = "gray90", alpha = .8) +
+  #geom_density(data = hylak_shp, aes(x = Lake_area), color = "gray",
+   #            fill = "gray90", alpha = .8) +
   geom_density() +
   scale_x_log10(
     n.breaks = 3, breaks = c(0.0001, 0.01, 1, 100, 100000),
@@ -120,14 +120,21 @@ lat <- metadata %>%
   geom_density(data = hylak_shp, aes(y = Pour_lat), color = "gray",
                fill = "gray90", alpha = .8) +
   geom_density() +
-  scale_x_continuous(limits = c(0, NA), expand = c(0, 0)) +
+  scale_x_continuous(limits = c(0, NA), expand = c(0, 0), 
+                     breaks = c(0, 0.02, 0.04)) +
   scale_y_continuous(breaks = c(70,50,30,10,-10,-30,-50,-70)) +
-  theme_classic() +
+  theme_bw() +
   theme(
-    axis.title.x = element_text(vjust = 15.5, margin = margin(t = 0)),
-    axis.text.x = element_text(angle = 30, hjust = 1),
+    axis.text.x = element_text(angle = 45, hjust = 1),
     axis.title.y = element_blank(),
-    axis.text.y = element_blank()
+    axis.text.y = element_blank(),
+    axis.line = element_line(linewidth = 0.25),
+    axis.ticks = element_line(linewidth = 0.3),
+    text = element_text(size = 9),
+    plot.margin = margin(0, 0, 0, 0, "pt"),
+    panel.border = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
   )
 ```
 
@@ -349,28 +356,28 @@ full <- map2 %>%
   )
 
 # full map with latitude
-map2 <- map + theme(plot.margin = unit(c(70, 5.5, 1.5, 30), "pt"))
+map2 <- map + theme(plot.margin = unit(c(0.5, 35, 1.5, 37), "pt"))
 full <- map2 %>%
   ggdraw() +
   draw_plot(usa,
-    x = -0.01,
-    y = 0.1,
+    x = -0.05,
+    y = 0.17,
     width = 0.35,
     height = 0.305,
     halign = 0.1, valign = 0.5
   ) +
   draw_plot(eu,
-    x = -.01,
-    y = 0.45,
+    x = -.05,
+    y = 0.52,
     width = 0.35,
     height = 0.35,
     halign = 0.5, valign = 0.5
   ) +
   draw_plot(lat,
-    x = 0.9,
-    y = 0.01,
-    width = 0.11,
-    height = 0.8
+    x = 0.905,
+    y = 0.05,
+    width = 0.075,
+    height = 0.84
   )
 
 comb <- ggpubr::ggarrange(full,
