@@ -25,9 +25,9 @@ library(rMR)
 source("R/equilibrium_calcs.R")
 
 # Load data
-data <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/2220/5/8553f79eeea9a6f722fc50d733ca9a74") %>%
+data <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/2220/5/8553f79eeea9a6f722fc50d733ca9a74?key=n9dYnNE5ReoA53SyzOCNgcPzLZA") %>%
   filter(Focal_site) # Cleaned
-metadata <- read_delim("https://pasta.lternet.edu/package/data/eml/edi/2220/5/81f003749ad039837475571390b20190") %>%
+metadata <- read_delim("https://pasta.lternet.edu/package/data/eml/edi/2220/5/81f003749ad039837475571390b20190?key=n9dYnNE5ReoA53SyzOCNgcPzLZA") %>%
   filter(Focal_site)
 layer_sum <- read_csv("../CompiledData/layer_sum.csv")
 ```
@@ -43,10 +43,9 @@ full <- data %>%
     "CO[2]",
     "CH[4]"
   )) %>%
-  filter(
-    Depth_m / MaximumDepth_m <= 1,
-    `Concentration (µmol/L)` >= 0
-  )
+  mutate(Depth_m = ifelse(Depth_m > MaximumDepth_m,
+                          MaximumDepth_m,
+                          Depth_m)) 
 
 min <- min(full$`Concentration (µmol/L)`, na.rm = T)
 max <- max(full$`Concentration (µmol/L)`, na.rm = T)

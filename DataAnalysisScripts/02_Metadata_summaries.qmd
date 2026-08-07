@@ -30,9 +30,9 @@ library(sf)
 library(cowplot) # ggdraw()
 
 # Load data
-data <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/2220/5/8553f79eeea9a6f722fc50d733ca9a74") %>%
+data <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/2220/5/8553f79eeea9a6f722fc50d733ca9a74?key=n9dYnNE5ReoA53SyzOCNgcPzLZA") %>%
   filter(Focal_site) # Cleaned
-metadata <- read_delim("https://pasta.lternet.edu/package/data/eml/edi/2220/5/81f003749ad039837475571390b20190") %>%
+metadata <- read_delim("https://pasta.lternet.edu/package/data/eml/edi/2220/5/81f003749ad039837475571390b20190?key=n9dYnNE5ReoA53SyzOCNgcPzLZA") %>%
   filter(Focal_site)
 layer_sum <- read_csv("../CompiledData/layer_sum.csv")
 
@@ -169,9 +169,7 @@ label_grat_x <- grat_wintri %>%
   rename(long = x_start, lat = y_end) %>%
   st_as_sf(coords = c("long", "lat"), crs = 4326) %>%
   st_transform_proj(crs = crs_wintri)
-meta_wintri <- st_transform_proj(st_as_sf(metadata, coords = c("Longitude", "Latitude"), crs = 4326),
-  crs = crs_wintri
-)
+
 meta_wintri <- data %>%
   group_by(LakeID) %>%
   summarize(

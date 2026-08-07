@@ -16,7 +16,7 @@ comp_two_rf_permutation <- function(all,
                                     log_vars,
                                     reps = 100) {
   vars <- vars[!vars %in% c("LakeID", "Latitude", "Longitude")]
-  colors <- c("#40476D", "#1098F7", "#0C7C59", "gray70")
+  colors <- c("#40476D", "#1098F7", "#3F67B0","#0C7C59", "gray70")
   names(colors) <- vars_simple
 
   log_select <- log_vars[log_vars %in% c(vars, vars_simple)]
@@ -27,7 +27,7 @@ comp_two_rf_permutation <- function(all,
     ungroup() %>%
     mutate(
       across(all_of(log_select), log),
-      mutate(across(where(is.character), as.factor))
+      across(where(is.character), as.factor)
     ) %>%
     select(all_of(c("value", vars_simple, vars, "LakeID", "name", "Layer")))
 

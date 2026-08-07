@@ -16,20 +16,21 @@ source(here::here("DataAnalysisScripts", "R", "permutation_rf.R"))
 generate_plot_permutation <- function(all, vars, var_names, gas_name, log_vars,
                                       pSat = F, reps = 100) {
   vars <- vars[!vars %in% c("LakeID", "Latitude", "Longitude")]
-  colors <- c("#69140E", "#40476D", "#1098F7", "#0C7C59", "#E65F5C", "gray70", "grey70", "grey70")
+  colors <- c("#69140E", "#40476D", "#1098F7", "#3F67B0","#0C7C59", "#E65F5C", "gray70", "grey70", "grey70")
   names(colors) <- vars
 
   var_names_part <- c(
     "DO_mgL" = "DO~(mg~L^-1)",
     "SurfaceArea_km2" = "SA~(km^2)",
-    "MaximumDepth_m" = "Max~depth~(m)",
+    "MaximumDepth_m" = "Max.~depth~(m)",
     "MeanDepth_m" = "Mean~depth~(m)",
     "TP_ugL_mean" = "TP~(µg~L^-1)",
-    "Temp_C" = "Temp~(ºC)",
-    "Osgood" = "Osgood",
-    "Absolute_latitude" = "Abs~lat~(DD)",
-    "buoyancy_frequency" = "Buoy~freq~(s^-2)",
-    "daylength" = "Day~length~(h)"
+    "Temp_C" = "Temp.~(ºC)",
+    "Osgood" = "Osgood~index",
+    "Absolute_latitude" = "Abs.~lat.~(DD)",
+    "buoyancy_frequency" = "Buoy.~freq.~(s^-2)",
+    "daylength" = "Day~length~(h)",
+    "dens_dif" = "Dens.~diff.~(kg~m^-3)"
   )
 
   levels_used <- recode(vars, !!!var_names_part)
@@ -45,7 +46,7 @@ generate_plot_permutation <- function(all, vars, var_names, gas_name, log_vars,
     ungroup() %>%
     mutate(
       across(all_of(log_select), log),
-      mutate(across(where(is.character), as.factor))
+      across(where(is.character), as.factor)
     ) %>%
     select(all_of(c("value", vars, "LakeID"))) %>%
     na.omit()
@@ -59,7 +60,7 @@ generate_plot_permutation <- function(all, vars, var_names, gas_name, log_vars,
     ungroup() %>%
     mutate(
       across(all_of(log_select), log),
-      mutate(across(where(is.character), as.factor))
+      across(where(is.character), as.factor)
     ) %>%
     select(all_of(c("value", vars, "LakeID"))) %>%
     na.omit()
@@ -245,7 +246,7 @@ generate_plot_permutation <- function(all, vars, var_names, gas_name, log_vars,
     )) +
     facetted_pos_scales(
       x = list(
-        var == "Max~depth~(m)" ~ scale_x_continuous(
+        var == "Max.~depth~(m)" ~ scale_x_continuous(
           trans = scales::pseudo_log_trans(0.01, 10),
           labels = scales::label_comma(drop0trailing = T),
           breaks = c(0.1, 1, 10, 100, 1000)
@@ -255,8 +256,8 @@ generate_plot_permutation <- function(all, vars, var_names, gas_name, log_vars,
           labels = scales::label_comma(drop0trailing = T),
           breaks = c(0.1, 1, 10, 100, 1000)
         ),
-        var == "Osgood" ~ scale_x_continuous(
-          trans = scales::pseudo_log_trans(0.001, 10),
+        var == "Osgood~index" ~ scale_x_continuous(
+          trans = scales::pseudo_log_trans(0.01, 10),
           labels = scales::label_comma(drop0trailing = T),
           breaks = c(0.1, 1, 10, 100, 1000)
         ),
@@ -265,10 +266,15 @@ generate_plot_permutation <- function(all, vars, var_names, gas_name, log_vars,
           labels = scales::label_comma(drop0trailing = T),
           breaks = c(1, 10, 100, 1000)
         ),
-        var == "Buoy~freq~(1/s)" ~ scale_x_continuous(
+        var == "Buoy.~freq.~(s^-2)" ~ scale_x_continuous(
           trans = scales::pseudo_log_trans(0.0001, 10),
           labels = scales::label_comma(drop0trailing = T),
           breaks = c(0.001, 0.01, 0.1)
+        ),
+        var == "Dens.~diff.~(kg~m^-3)" ~ scale_x_continuous(
+          trans = scales::pseudo_log_trans(0.001, 10),
+          labels = scales::label_comma(drop0trailing = T),
+          breaks = c(0.01, 0.1, 1)
         ),
         var == "SA~(km^2)" ~ scale_x_continuous(
           trans = scales::pseudo_log_trans(0.0001, 10),

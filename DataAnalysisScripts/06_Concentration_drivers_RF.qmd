@@ -33,7 +33,7 @@ source("R/generate_plot_ratio_permutation.R")
 source("R/comp_two_rf_permutation.R")
 
 # Load data
-metadata <- read_delim("https://pasta.lternet.edu/package/data/eml/edi/2220/5/81f003749ad039837475571390b20190") %>%
+metadata <- read_delim("https://pasta.lternet.edu/package/data/eml/edi/2220/5/81f003749ad039837475571390b20190?key=n9dYnNE5ReoA53SyzOCNgcPzLZA") %>%
   filter(Focal_site)
 layer_sum <- read_csv("../CompiledData/layer_sum.csv")
 
@@ -41,20 +41,21 @@ layer_sum <- read_csv("../CompiledData/layer_sum.csv")
 var_names <- c(
   "DO_mgL" = "DO~(mg~L^-1)",
   "SurfaceArea_km2" = "SA~(km^2)",
-  "MaximumDepth_m" = "Max~depth~(m)",
+  "MaximumDepth_m" = "Max.~depth~(m)",
   "MeanDepth_m" = "Mean~depth~(m)",
   "TP_ugL_mean" = "TP~(µg~L^-1)",
-  "Temp_C" = "Temp~(ºC)",
-  "Osgood" = "Osgood",
-  "Absolute_latitude" = "Abs~lat~(DD)",
+  "Temp_C" = "Temp.~(ºC)",
+  "Osgood" = "Osgood~index",
+  "Absolute_latitude" = "Abs.~lat.~(DD)",
   "buoyancy_frequency" = "Buoy~freq~(s^-2)",
   "daylength" = "Day~length~(h)",
-  "dens_dif" = "dens_dif",
+  "dens_dif" = "Dens.~diff.~(kg~m^-3)",
+  "bot_dens_dif" = "Dens.~diff.~(kg~m^-3)",
   "Latitude" = "Latitude",
   "TrophicStatus" = "Trophic\nstatus",
   "StratificationRegime" = "Stratification\nregime",
-  "bot_DO_mgL" = "Bot~DO~(mg~L^-1)",
-  "bot_buoyancy_frequency" = "Buoy~freq~(s^-2)",
+  "bot_DO_mgL" = "Bot.~DO~(mg~L^-1)",
+  "bot_buoyancy_frequency" = "Buoy.~freq.~(s^-2)",
   "yday" = "Day~of~year",
   "LakeID" = "Lake~random~effect"
 )
@@ -63,7 +64,8 @@ log_vars <- c(
   "SurfaceArea_km2", "MeanDepth_m",
   "MaximumDepth_m", "TP_ugL_mean",
   "bot_buoyancy_frequency", "Osgood",
-  "buoyancy_frequency"
+  "buoyancy_frequency",
+  "dens_dif"
 )
 
 # Set seed to produce consistent RF results
@@ -180,9 +182,11 @@ all <- layer_plot_data %>%
 vars <- c(
   "DO_mgL",
   "SurfaceArea_km2",
+  "MaximumDepth_m",
   "Osgood",
   "TP_ugL_mean",
-  "Temp_C",
+  #"Temp_C",
+  "dens_dif",
   "Absolute_latitude",
   "Latitude", # Not used as a driver in permutation approach
   "Longitude", # Not used as a driver in permutation approach
@@ -205,7 +209,10 @@ for_cor <- all %>%
   select(all_of(c("value", vars, "name", "Layer", "LakeID", "Date", "Source"))) %>%
   na.omit() %>%
   ungroup() %>%
-  pivot_wider(names_from = Layer, values_from = c(value, DO_mgL, Temp_C)) %>%
+  pivot_wider(names_from = Layer, values_from = c(value, DO_mgL,
+                                                  #Temp_C
+                                                  )
+              ) %>%
   pivot_wider(names_from = name, values_from = c(value_surf, value_bot)) %>%
   select(
     where(is.numeric),
@@ -238,7 +245,7 @@ dens_plots <- for_cor %>%
   facet_wrap(~name, scales = "free", labeller = "label_parsed") +
   egg::theme_article()
 
-ggsave("../Figures/dens_plots.png", dens_plots, width = 7, height = 4.5, dpi = 300)
+ggsave("../Figures/dens_plots.png", dens_plots, width = 8, height = 4.5, dpi = 300)
 
 for_corrplot <- for_cor %>%
   mutate(row = row_number()) %>%
@@ -248,13 +255,13 @@ for_corrplot <- for_cor %>%
     levels = c(
       "DO_mgL_bot", "DO_mgL_surf", "SurfaceArea_km2", "Osgood",
       "TP_ugL_mean", "Temp_C_bot", "Temp_C_surf",
-      "Absolute_latitude"
+      "Absolute_latitude", "dens_diff", "MaximumDepth_m"
     ),
     labels = c(
       ":Bottom~DO~(mg~L^-1)", ":Surface~DO~(mg~L^-1)", ":SA~(log~km^2)",
       ":Osgood~index~(log)",
       ":TP~(log~µg~L^-1)", ":Bottom~temp~(ºC)", ":Surface~temp~(ºC)",
-      ":Abs.~latitude"
+      ":Abs.~latitude", "dens_diff", "MaximumDepth_m"
     )
   )) %>%
   pivot_wider() %>%
@@ -283,23 +290,23 @@ dev.off()
 
 ```{r splm}
 # Run regressions
-co2_plot <- generate_plot_splmRF(
+co2_plot_splm <- generate_plot_splmRF(
   all = all, vars = vars, var_names = var_names,
   gas_name = "CO[2]", log_vars = log_vars
 )
-co2_plot
-ggsave(co2_plot,
+co2_plot_splm
+ggsave(co2_plot_splm,
   dpi = 300,
   filename = "../Figures/CO2 drivers - surf bot - splmRF.jpeg",
-  width = 7, height = 6
+  width = 8, height = 6
 )
 
-ch4_plot <- generate_plot_splmRF(all, vars, var_names, "CH[4]", log_vars)
-ch4_plot
-ggsave(ch4_plot,
+ch4_plot_splm <- generate_plot_splmRF(all, vars, var_names, "CH[4]", log_vars)
+ch4_plot_splm
+ggsave(ch4_plot_splm,
   dpi = 300,
   filename = "../Figures/CH4 drivers - surf bot - splmRF.jpeg",
-  width = 7, height = 6
+  width = 8, height = 6
 )
 ```
 
@@ -307,28 +314,28 @@ ggsave(ch4_plot,
 
 ```{r permutation}
 # Run regressions
-co2_plot <- generate_plot_permutation(
+co2_plot_perm <- generate_plot_permutation(
   all = all, vars = vars,
   var_names = var_names, gas_name = "CO[2]",
   log_vars = log_vars, reps = 10
 )
-co2_plot
-ggsave(co2_plot,
+co2_plot_perm
+ggsave(co2_plot_perm,
   dpi = 300,
   filename = "../Figures/CO2 drivers - surf bot - permutation.jpeg",
-  width = 7, height = 6
+  width = 8, height = 6
 )
 
-ch4_plot <- generate_plot_permutation(
+ch4_plot_perm <- generate_plot_permutation(
   all = all, vars = vars,
   var_names = var_names, gas_name = "CH[4]",
   log_vars = log_vars, reps = 10
 )
-ch4_plot
-ggsave(ch4_plot,
+ch4_plot_perm
+ggsave(ch4_plot_perm,
   dpi = 300,
   filename = "../Figures/CH4 drivers - surf bot - permutation.jpeg",
-  width = 7, height = 6
+  width = 8, height = 6
 )
 
 # Consistent
@@ -344,28 +351,110 @@ all_consistent <- all %>%
     sum(Layer == "surf" & name == "CH[4]") >= 1
   )
 
-co2_plot <- generate_plot_permutation(
+co2_plot_consistent <- generate_plot_permutation(
   all = all_consistent, vars = vars,
   var_names = var_names, gas_name = "CO[2]",
   log_vars = log_vars, reps = 10
 )
-co2_plot
-ggsave(co2_plot,
+co2_plot_consistent
+ggsave(co2_plot_consistent,
   dpi = 300,
   filename = "../Figures/CO2 drivers - surf bot - permutation - consistent.jpeg",
-  width = 7, height = 6
+  width = 8, height = 6
 )
 
-ch4_plot <- generate_plot_permutation(
+ch4_plot_consistent <- generate_plot_permutation(
   all = all_consistent, vars = vars,
   var_names = var_names, gas_name = "CH[4]",
   log_vars = log_vars, reps = 10
 )
-ch4_plot
-ggsave(ch4_plot,
+ch4_plot_consistent
+ggsave(ch4_plot_consistent,
   dpi = 300,
   filename = "../Figures/CH4 drivers - surf bot - permutation - consistent.jpeg",
-  width = 7, height = 6
+  width = 8, height = 6
+)
+
+# United States
+all_us <- all %>%
+  filter(Longitude > -102, # From figure 1
+         Latitude > 26,
+         Longitude < -72,
+         Latitude < 50) %>% 
+  ungroup() %>%
+  select(all_of(c("value", "name", "Layer", "LakeID", vars))) %>%
+  drop_na() %>%
+  group_by(LakeID) %>%
+  filter(
+    sum(Layer == "bot" & name == "CO[2]") >= 1,
+    sum(Layer == "bot" & name == "CH[4]") >= 1,
+    sum(Layer == "surf" & name == "CO[2]") >= 1,
+    sum(Layer == "surf" & name == "CH[4]") >= 1
+  )
+
+co2_plot_us <- generate_plot_permutation(
+  all = all_us, vars = vars,
+  var_names = var_names, gas_name = "CO[2]",
+  log_vars = log_vars, reps = 10
+)
+co2_plot_us
+ggsave(co2_plot_us,
+  dpi = 300,
+  filename = "../Figures/CO2 drivers - surf bot - permutation - US.jpeg",
+  width = 8, height = 6
+)
+
+ch4_plot_us <- generate_plot_permutation(
+  all = all_us, vars = vars,
+  var_names = var_names, gas_name = "CH[4]",
+  log_vars = log_vars, reps = 10
+)
+ch4_plot_us
+ggsave(ch4_plot_us,
+  dpi = 300,
+  filename = "../Figures/CH4 drivers - surf bot - permutation - US.jpeg",
+  width = 8, height = 6
+)
+
+# Europe
+all_eu <- all %>%
+  filter(Longitude > -8.9, # From figure 1
+         Latitude > 35.2,
+         Longitude < 28,
+         Latitude < 72.2) %>% 
+  ungroup() %>%
+  select(all_of(c("value", "name", "Layer", "LakeID", vars))) %>%
+  drop_na() %>%
+  group_by(LakeID) %>%
+  filter(
+    sum(Layer == "bot" & name == "CO[2]") >= 1,
+    sum(Layer == "bot" & name == "CH[4]") >= 1,
+    sum(Layer == "surf" & name == "CO[2]") >= 1,
+    sum(Layer == "surf" & name == "CH[4]") >= 1
+  )
+
+co2_plot_eu <- generate_plot_permutation(
+  all = all_eu, vars = vars,
+  var_names = var_names, gas_name = "CO[2]",
+  log_vars = log_vars, reps = 10
+)
+co2_plot_eu
+ggsave(co2_plot_eu,
+  dpi = 300,
+  filename = "../Figures/CO2 drivers - surf bot - permutation - EURO.jpeg",
+  width = 8, height = 6
+)
+
+ch4_plot_eu <- generate_plot_permutation(
+  all = all_eu, vars = vars,
+  var_names = var_names, gas_name = "CH[4]",
+  log_vars = log_vars, reps = 10
+)
+ch4_plot_eu
+ggsave(ch4_plot_eu,
+  dpi = 300,
+  filename = "../Figures/CH4 drivers - surf bot - permutation - EURO.jpeg",
+  width = 8, height = 6
 )
 
 # Lakes with one measurement
@@ -385,6 +474,33 @@ all %>%
     only_1 = sum(n == 1),
     median = median(n)
   )
+
+all_list_names <- c("US", "EURO")
+all_list <- list(all_us, all_eu)
+
+comp_ch4 <- spatial_comp_permutation(
+  all_list = all_list, all_list_names = all_list_names, vars = vars,
+  var_names = var_names, gas_name = "CH[4]",
+  log_vars = log_vars, reps = 10
+)
+
+ggsave(comp_ch4,
+  dpi = 300,
+  filename = "../Figures/CH4 drivers - surf bot - permutation - SPAT_COMP.jpeg",
+  width = 8, height = 8
+)
+
+comp_co2 <- spatial_comp_permutation(
+  all_list = all_list, all_list_names = all_list_names, vars = vars,
+  var_names = var_names, gas_name = "CO[2]",
+  log_vars = log_vars, reps = 10
+)
+
+ggsave(comp_co2,
+  dpi = 300,
+  filename = "../Figures/CO2 drivers - surf bot - permutation - SPAT_COMP.jpeg",
+  width = 8, height = 8
+)
 ```
 
 ## Step 6: Simple/complex comparison
@@ -392,6 +508,7 @@ all %>%
 ```{r simple_complex}
 vars_simple <- c(
   "SurfaceArea_km2",
+  "MaximumDepth_m",
   "Osgood",
   "TrophicStatus",
   "Absolute_latitude"
@@ -409,9 +526,16 @@ ggsave(s, dpi = 300, filename = "../Figures/Model comparison - rmse comb imp - p
 
 ```{r ratio}
 epi_hypo <- layer_sum %>%
-  select(-Depth_m) %>%
+  mutate(density = water.density(Temp_C)) %>%
+  group_by(LakeID, Date) %>%
+  mutate(dens_dif = ifelse(length(density) == 2,
+    abs(density[Layer == "bot"] -
+      density[Layer == "surf"]),
+    NA
+  )) %>%
+  select(-Depth_m, -density) %>%
   pivot_longer(
-    cols = CH4_umolL:buoyancy_frequency,
+    cols = CH4_umolL:dens_dif,
     names_to = "variable", values_to = "value"
   ) %>%
   pivot_wider(names_from = c(Layer, variable), values_from = value) %>%
@@ -443,9 +567,10 @@ epi_hypo_ch4 <- epi_hypo %>%
 vars <- c(
   "bot_DO_mgL",
   "SurfaceArea_km2",
+  "MaximumDepth_m",
   "Osgood",
   "TP_ugL_mean",
-  "bot_buoyancy_frequency",
+  "bot_dens_dif",
   "Absolute_latitude"
 )
 
@@ -461,7 +586,7 @@ comb_plot
 ggsave(comb_plot,
   dpi = 300,
   filename = "../Figures/Ratio drivers - permutation.jpeg",
-  width = 6, height = 5
+  width = 8, height = 5
 )
 ```
 
@@ -482,35 +607,162 @@ all_pSat <- all %>%
 vars <- c(
   "DO_mgL",
   "SurfaceArea_km2",
+  "MaximumDepth_m",
   "Osgood",
   "TP_ugL_mean",
-  "Temp_C",
+  "dens_dif",
   "Absolute_latitude"
 )
 
-co2_plot <- generate_plot_permutation(
+co2_plot_pct <- generate_plot_permutation(
   all = all_pSat, vars = vars,
   var_names = var_names, pSat = T,
   gas_name = "CO[2]", log_vars = log_vars,
   reps = 10
 )
-co2_plot
-ggsave(co2_plot,
+co2_plot_pct
+ggsave(co2_plot_pct,
   dpi = 300,
   filename = "../Figures/CO2 drivers - surf bot - pSat - permutation.jpeg",
-  width = 7, height = 6
+  width = 8, height = 6
 )
 
-ch4_plot <- generate_plot_permutation(
+ch4_plot_pct <- generate_plot_permutation(
   all = all_pSat, vars = vars,
   var_names = var_names, pSat = T,
   gas_name = "CH[4]", log_vars = log_vars,
   reps = 10
 )
-ch4_plot
-ggsave(ch4_plot,
+ch4_plot_pct
+ggsave(ch4_plot_pct,
   dpi = 300,
   filename = "../Figures/CH4 drivers - surf bot - pSat - permutation.jpeg",
-  width = 7, height = 6
+  width = 8, height = 6
+)
+```
+
+## Map RF data
+
+```{r map2}
+library(rnaturalearth)
+library(rnaturalearthdata)
+# remotes::install_github("ropensci/rnaturalearthhires")
+library(rnaturalearthhires)
+library(ggspatial) # annotation_scale()
+library(lwgeom) # st_transform_proj()
+library(sf)
+library(cowplot) # ggdraw()
+
+# Load basemap
+world <- ne_countries(scale = "medium", returnclass = "sf")
+crs_wintri <- "+proj=wintri +datum=WGS84 +no_defs +over"
+world_wintri <- st_transform_proj(world, crs = crs_wintri)
+
+disp_win_wgs84 <- st_sfc(st_point(c(-180, -80)), st_point(c(180, 80)),
+  crs = 4326
+)
+disp_win_trans <- st_transform(disp_win_wgs84, crs = crs_wintri)
+disp_win_coord <- st_coordinates(disp_win_trans)
+
+grat_wintri <-
+  st_graticule(
+    x = c(-180, -90, 180, 90),
+    crs = st_crs(4326),
+    lat = c(-89.9, seq(-90, 90, 20), 89.9),
+  ) %>%
+  st_transform_proj(crs = crs_wintri)
+
+for_map <- all %>%
+  group_by(name, Layer) %>%
+  filter(
+    if_all(all_of(log_select), \(x) x > 0)
+  ) %>%
+  ungroup() %>%
+  mutate(
+    across(all_of(log_select), log),
+    across(where(is.character), as.factor)
+  ) %>%
+  select(all_of(c("value", vars, "LakeID", "name", "Layer"))) %>%
+  na.omit() %>%
+  mutate(Layer = recode_values(Layer,
+                               "bot"~"Bottom",
+                               "surf"~"Surface"),
+         facet_name = paste(Layer, name, sep = "~")) %>%
+  select(facet_name, LakeID) %>%
+  distinct() %>%
+  group_by(facet_name) %>%
+  mutate(n = length(unique(LakeID))) %>%
+  ungroup() %>%
+  mutate(facet_name = paste0(facet_name, "~'(n = ", n, ")'")) %>%
+  left_join(metadata_by_lake) %>%
+  filter(!is.na(Latitude)) %>%
+  st_as_sf(coords = c("Longitude", "Latitude"), crs = 4326) %>%
+  st_transform_proj(crs = crs_wintri)
+
+# vectors of latitudes and longitudes that go once around the
+# globe in 1-degree steps
+lat_min <- -90
+lat_max <- 90
+lon_min <- -180
+lon_max <- 180
+lats <- c(
+  lat_max:lat_min, rep(lat_min, lon_max - lon_min + 1),
+  lat_min:lat_max, rep(lat_max, lon_max - lon_min + 1)
+)
+longs <- c(
+  rep(lon_max, lat_max - lat_min + 1), lon_max:lon_min,
+  rep(lon_min, lat_max - lat_min + 1), lon_min:lon_max
+)
+
+# turn into correctly projected sf collection
+wintri_outline <-
+  list(cbind(longs, lats)) %>%
+  st_polygon() %>%
+  st_sfc( # create sf geometry list column
+    crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
+  ) %>%
+  st_sf() %>%
+  st_transform_proj(crs = crs_wintri) # transform to Winkel tripel
+
+# Plot!
+map <- ggplot(data = world_wintri) +
+  geom_sf(
+    data = wintri_outline,
+    fill = "#EDF6FD", size = 0.5 / .pt
+  ) +
+  geom_sf(
+    data = grat_wintri, color = "black", size = 0.13, alpha = 0.7,
+    linetype = "dotted"
+  ) +
+  geom_sf(fill = "white", color = "grey50", size = 0.5 / .pt) +
+  geom_sf(
+    data = for_map
+  ) +
+  coord_sf(datum = NULL, expand = T) +
+  theme(
+    plot.margin = ggplot2::margin(0, 0, 0, 0, "cm"),
+    plot.background = element_rect(fill = "white"),
+    legend.position = "bottom",
+    legend.title = element_blank(),
+    legend.margin = ggplot2::margin(-0.5, 0, 0, 0, "cm"),
+    legend.spacing.x = unit(0, "mm"),
+    legend.key.spacing.x = unit(0, "mm"),
+    legend.spacing.y = unit(0, "mm"),
+    legend.text = element_text(margin = ggplot2::margin(l = 0)),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.y = element_blank(),
+    panel.background = element_rect(fill = "white"),
+    panel.grid = element_blank()
+  ) +
+  facet_wrap(~facet_name, labeller = "label_parsed")
+
+# full map
+ggsave(
+  plot = map, filename = "../Figures/Data summary - RF map.jpeg", width = 6,
+  height = 4, units = "in", dpi = 300
 )
 ```
