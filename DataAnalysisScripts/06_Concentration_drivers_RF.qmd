@@ -185,7 +185,7 @@ vars <- c(
   "MaximumDepth_m",
   "Osgood",
   "TP_ugL_mean",
-  #"Temp_C",
+  "Temp_C",
   "dens_dif",
   "Absolute_latitude",
   "Latitude", # Not used as a driver in permutation approach

@@ -103,6 +103,12 @@ doys <- data %>%
     limits = c(0, 365)
   ) +
   theme(axis.title.x = element_text(vjust = 0.5))
+
+metadata %>%
+  select(LakeID, LakeType) %>%
+  distinct() %>%
+  group_by(LakeType) %>%
+  summarize(n = length(unique(LakeID)))
 ```
 
 ## Step 3: Map data availability across lakes

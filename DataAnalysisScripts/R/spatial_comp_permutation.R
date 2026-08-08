@@ -241,7 +241,8 @@ spatial_comp_permutation <- function(all_list, all_list_names,
     ggh4x::facet_nested(Layer + Location ~ var,
       scales = "free",
       switch = "both",
-      labeller = label_parsed
+      labeller = label_parsed,
+      nest_line = element_line(linewidth = 0.1)
     ) +
     labs(x = NULL) +
     egg::theme_article() +
