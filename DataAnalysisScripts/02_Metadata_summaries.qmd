@@ -35,6 +35,10 @@ data <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/2220/5/8553f79e
 metadata <- read_delim("https://pasta.lternet.edu/package/data/eml/edi/2220/5/81f003749ad039837475571390b20190?key=n9dYnNE5ReoA53SyzOCNgcPzLZA") %>%
   filter(Focal_site)
 layer_sum <- read_csv("../CompiledData/layer_sum.csv")
+
+#hydrolakes
+hylak_shp <- read_sf(dsn = "../../GasHype/RawData/HydroLAKES/HydroLAKES_polys_v10.shp", layer = "HydroLAKES_polys_v10") %>% st_drop_geometry() %>%
+  select(Hylak_id, Lake_area, Depth_avg, Pour_long, Pour_lat)
 ```
 
 ## Step 2: Create subplots for key summary stats
@@ -45,6 +49,8 @@ depth <- metadata %>%
   group_by(LakeID) %>%
   summarize(MaximumDepth_m = mean(MaximumDepth_m, na.rm = T)) %>%
   ggplot(aes(x = MaximumDepth_m)) +
+  #geom_density(data = hylak_shp, aes(x = Depth_avg), color = "gray",
+   #            fill = "gray90", alpha = .8) +
   geom_density() +
   scale_x_log10(
     breaks = c(1, 10, 100, 1000),
@@ -65,6 +71,8 @@ area <- metadata %>%
   group_by(LakeID) %>%
   summarize(SurfaceArea_km2 = mean(SurfaceArea_km2, na.rm = T)) %>%
   ggplot(aes(x = SurfaceArea_km2)) +
+  #geom_density(data = hylak_shp, aes(x = Lake_area), color = "gray",
+   #            fill = "gray90", alpha = .8) +
   geom_density() +
   scale_x_log10(
     n.breaks = 3, breaks = c(0.0001, 0.01, 1, 100, 100000),
@@ -109,6 +117,31 @@ metadata %>%
   distinct() %>%
   group_by(LakeType) %>%
   summarize(n = length(unique(LakeID)))
+
+lat <- metadata %>%
+  filter(Focal_site == TRUE) %>%
+  group_by(LakeID) %>%
+  summarize(lat = mean(Latitude, na.rm = T)) %>%
+  ggplot(aes(y = lat)) +
+  geom_density(data = hylak_shp, aes(y = Pour_lat), color = "gray",
+               fill = "gray90", alpha = .8) +
+  geom_density() +
+  scale_x_continuous(limits = c(0, NA), expand = c(0, 0), 
+                     breaks = c(0, 0.02, 0.04)) +
+  scale_y_continuous(breaks = c(70,50,30,10,-10,-30,-50,-70)) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.title.y = element_blank(),
+    axis.text.y = element_blank(),
+    axis.line = element_line(linewidth = 0.25),
+    axis.ticks = element_line(linewidth = 0.3),
+    text = element_text(size = 9),
+    plot.margin = margin(0, 0, 0, 0, "pt"),
+    panel.border = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+  )
 ```
 
 ## Step 3: Map data availability across lakes
@@ -228,11 +261,11 @@ map <- ggplot(data = world_wintri) +
   ) +
   geom_sf_text(
     data = label_grat_y, aes(label = degree_label), parse = T,
-    nudge_x = c(1400000), size = 2.5
+    nudge_x = c(1400000), size = 2.2
   ) +
   geom_sf_text(
     data = label_grat_x, aes(label = degree_label), parse = T,
-    nudge_y = c(400000), size = 2.5
+    nudge_y = c(400000), size = 2.2
   ) +
   coord_sf(datum = NULL, expand = T) +
   scale_fill_manual(
@@ -326,6 +359,31 @@ full <- map2 %>%
     width = 0.4,
     height = 0.4,
     halign = 0.5, valign = 0.5
+  )
+
+# full map with latitude
+map2 <- map + theme(plot.margin = unit(c(0.5, 35, 1.5, 37), "pt"))
+full <- map2 %>%
+  ggdraw() +
+  draw_plot(usa,
+    x = -0.05,
+    y = 0.17,
+    width = 0.35,
+    height = 0.305,
+    halign = 0.1, valign = 0.5
+  ) +
+  draw_plot(eu,
+    x = -.05,
+    y = 0.52,
+    width = 0.35,
+    height = 0.35,
+    halign = 0.5, valign = 0.5
+  ) +
+  draw_plot(lat,
+    x = 0.905,
+    y = 0.05,
+    width = 0.075,
+    height = 0.84
   )
 
 comb <- ggpubr::ggarrange(full,
