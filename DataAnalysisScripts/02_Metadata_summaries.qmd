@@ -38,7 +38,8 @@ layer_sum <- read_csv("../CompiledData/layer_sum.csv")
 
 #hydrolakes
 hylak_shp <- read_sf(dsn = "../../GasHype/RawData/HydroLAKES/HydroLAKES_polys_v10.shp", layer = "HydroLAKES_polys_v10") %>% st_drop_geometry() %>%
-  select(Hylak_id, Lake_area, Depth_avg, Pour_long, Pour_lat)
+#hylak_shp <- read_sf(dsn = "../CompiledData/HydroLAKES_points_v10.dbf") %>% st_drop_geometry() %>%
+#  select(Hylak_id, Lake_area, Depth_avg, Pour_long, Pour_lat)
 ```
 
 ## Step 2: Create subplots for key summary stats
@@ -128,15 +129,18 @@ lat <- metadata %>%
   geom_density() +
   scale_x_continuous(limits = c(0, NA), expand = c(0, 0), 
                      breaks = c(0, 0.02, 0.04)) +
-  scale_y_continuous(breaks = c(70,50,30,10,-10,-30,-50,-70)) +
+  scale_y_continuous(breaks = seq(-70, 70, 20),
+                     labels = parse(text = c('"70"*degree*S', '"50"*degree*S', '"30"*degree*S',
+                                '"10"*degree*S', '"10"*degree*N', '"30"*degree*N',
+                                '"50"*degree*N', '"70"*degree*N'))) +
   theme_bw() +
   theme(
     axis.text.x = element_text(angle = 45, hjust = 1),
     axis.title.y = element_blank(),
-    axis.text.y = element_blank(),
     axis.line = element_line(linewidth = 0.25),
     axis.ticks = element_line(linewidth = 0.3),
     text = element_text(size = 9),
+    axis.text = element_text(size = 2.2*ggplot2::.pt),
     plot.margin = margin(0, 0, 0, 0, "pt"),
     panel.border = element_blank(),
     panel.grid.major = element_blank(),
@@ -259,10 +263,10 @@ map <- ggplot(data = world_wintri) +
     aes(fill = Data_avail), shape = 21, color = "white",
     size = 2, alpha = .5, stroke = .4
   ) +
-  geom_sf_text(
-    data = label_grat_y, aes(label = degree_label), parse = T,
-    nudge_x = c(1400000), size = 2.2
-  ) +
+  #geom_sf_text(
+  #  data = label_grat_y, aes(label = degree_label), parse = T,
+  #  nudge_x = c(1400000), size = 2.2
+  #) +
   geom_sf_text(
     data = label_grat_x, aes(label = degree_label), parse = T,
     nudge_y = c(400000), size = 2.2
@@ -362,7 +366,7 @@ full <- map2 %>%
   )
 
 # full map with latitude
-map2 <- map + theme(plot.margin = unit(c(0.5, 35, 1.5, 37), "pt"))
+map2 <- map + theme(plot.margin = unit(c(0.5, 50, 1.5, 30), "pt"))
 full <- map2 %>%
   ggdraw() +
   draw_plot(usa,
@@ -380,9 +384,9 @@ full <- map2 %>%
     halign = 0.5, valign = 0.5
   ) +
   draw_plot(lat,
-    x = 0.905,
+    x = 0.855,
     y = 0.05,
-    width = 0.075,
+    width = 0.13,
     height = 0.84
   )
 
