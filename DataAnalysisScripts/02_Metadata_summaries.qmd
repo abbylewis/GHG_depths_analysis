@@ -39,7 +39,7 @@ layer_sum <- read_csv("../CompiledData/layer_sum.csv")
 #hydrolakes
 hylak_shp <- read_sf(dsn = "../../GasHype/RawData/HydroLAKES/HydroLAKES_polys_v10.shp", layer = "HydroLAKES_polys_v10") %>% st_drop_geometry() %>%
 #hylak_shp <- read_sf(dsn = "../CompiledData/HydroLAKES_points_v10.dbf") %>% st_drop_geometry() %>%
-#  select(Hylak_id, Lake_area, Depth_avg, Pour_long, Pour_lat)
+  select(Hylak_id, Lake_area, Depth_avg, Pour_long, Pour_lat)
 ```
 
 ## Step 2: Create subplots for key summary stats
@@ -269,7 +269,7 @@ map <- ggplot(data = world_wintri) +
   #) +
   geom_sf_text(
     data = label_grat_x, aes(label = degree_label), parse = T,
-    nudge_y = c(400000), size = 2.2
+    nudge_y = c(400000), size = 2.2, color = "grey30"
   ) +
   coord_sf(datum = NULL, expand = T) +
   scale_fill_manual(
