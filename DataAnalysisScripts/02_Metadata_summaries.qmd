@@ -269,7 +269,7 @@ map <- ggplot(data = world_wintri) +
   #) +
   geom_sf_text(
     data = label_grat_x, aes(label = degree_label), parse = T,
-    nudge_y = c(400000), size = 2.2
+    nudge_y = c(400000), size = 2.2, color = "grey30"
   ) +
   coord_sf(datum = NULL, expand = T) +
   scale_fill_manual(
