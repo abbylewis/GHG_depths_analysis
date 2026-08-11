@@ -8,6 +8,7 @@ Load packages
 
 ```{r}
 library(tidyverse)
+source("R/make_ecosystem_plot.R")
 ```
 
 Ours
@@ -45,7 +46,7 @@ Emily's
 ```{r}
 #https://portal.edirepository.org/nis/mapbrowse?packageid=knb-lter-ntl.420.3
 #https://essd.copernicus.org/articles/15/2879/2023/essd-15-2879-2023.html
-streams <- read_csv("https://pasta.lternet.edu/package/data/eml/knb-lter-ntl/420/3/ba3e270bcab8ace5d157c995e4b791e4")
+streams <- read_csv("https://pasta.lternet.edu/package/data/eml/knb-lter-ntl/420/3/ba3e270bcab8ace5d157c995e4b791e4?key=n9dYnNE5ReoA53SyzOCNgcPzLZA")
 
 stream_sum = streams %>%
   filter(CH4mean >= 0) %>%
@@ -69,7 +70,7 @@ ocean_sum <- ocean %>%
          ch4 >= 0,
          !grepl("estuary", Label, ignore.case = T)) %>%
   select(name, value) %>%
-  mutate(Ecosystem = "Ocean\n(all)")
+  mutate(Ecosystem = "Oceans")
 
 ocean_surface <- ocean %>%
   mutate(name = "CH4_umolL",
@@ -156,16 +157,15 @@ comb <- bind_rows(stream_sum,
                   tropical_rivers_sum,
                   estuary_sum,
                   ocean_sum,
-                  ocean_surface,
+                  #ocean_surface,
                   flow) %>%
   bind_rows(layer_means) %>%
   mutate(Ecosystem = factor(Ecosystem,
                             levels = c(
-                              "Ocean\nsurface",
-                              "Ocean\n(all)",
+                              "Oceans",
                               "Estuaries",
                               "Streams",
-                                "Flowing\nfreshwaters",
+                              "Flowing\nfreshwaters",
                               "Tropical\nrivers",
                                 "Lake\nsurface",
                                 "Lake\nbottom"))) %>%
@@ -214,8 +214,8 @@ text <- comb %>%
          #              1, 0),
     xpos = xpos2,
          hjust = 1) %>%
-  mutate(label = ifelse(Ecosystem %in% c("Ocean\nsurface", "Flowing\nfreshwaters"), label, sub("n =\n", "", label)),
-         label_median = ifelse(Ecosystem %in% c("Ocean\nsurface", "Flowing\nfreshwaters"), label_median, sub("median =\n", "", label_median)))
+  mutate(label = ifelse(Ecosystem %in% c("Oceans", "Flowing\nfreshwaters"), label, sub("n =\n", "", label)),
+         label_median = ifelse(Ecosystem %in% c("Oceans", "Flowing\nfreshwaters"), label_median, sub("median =\n", "", label_median)))
 
 row_height <- 0.9 #cm
 

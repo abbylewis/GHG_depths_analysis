@@ -29,6 +29,13 @@ layer_sum <- read_csv("../CompiledData/layer_sum.csv")
 # Combine
 full <- data %>%
   left_join(metadata)
+
+layer_sum %>%
+  select(LakeID, Source, Date, Layer, Temp_C) %>%
+  pivot_wider(names_from = Layer, values_from = Temp_C) %>%
+  filter(!is.na(bot),
+         !is.na(surf)) %>%
+  summarize(ice_covered_pct = sum(bot>surf)/n()*100)
 ```
 
 ## Step 2: Summary stats about dataset
@@ -140,6 +147,35 @@ length(unique(
     pull(LakeID)
 ))
 79 / 249
+
+inverse_meta <- epi_hypo_data %>%
+  filter(Gas == "CH[4]") %>%
+  filter(
+    !is.na(surf),
+    !is.na(bot)
+  ) %>%
+  mutate(Inverse = ifelse(surf > bot,
+                          T, F)) %>%
+  group_by(LakeID) %>%
+  summarize(Inverse = sum(Inverse) >= 1) %>%
+  left_join(metadata %>% select(LakeID, MaximumDepth_m, SurfaceArea_km2) %>% distinct())
+
+inverse_plot <- inverse_meta %>%
+  pivot_longer(c(MaximumDepth_m, SurfaceArea_km2)) %>%
+  mutate(name = recode_values(name,
+                              "MaximumDepth_m"~"Maximum~depth~(m)",
+                              "SurfaceArea_km2"~"Surface~area~(km^2)")) %>%
+  ggplot(aes(x = value, color = Inverse))+
+  geom_density()+
+  facet_wrap(~name, scales = "free_x", labeller = "label_parsed")+
+  scale_x_log10(labels = scales::label_comma(accuracy = 0.001,
+                                             drop0trailing = T))+
+  scale_color_manual(name = "Inverse methane\nprofiles",
+                     breaks = c(T, F),
+                     labels = c("Present", "Not present"),
+                     values = c("turquoise", "grey20"))+
+  egg::theme_article()
+ggsave(plot = inverse_plot, "../Figures/Inverse_ch4.png", width = 5, height = 2.5)
 
 epi_hypo_data %>%
   mutate(DO_level = ifelse(Oxygen > 1, "Oxic", "Anoxic")) %>%
