@@ -104,7 +104,7 @@ doys <- data %>%
   xlab("Sampling date") +
   theme_bw() +
   scale_x_continuous(
-    breaks = c(82, 266),
+    breaks = c(80, 264),
     labels = c(
       "spring\nequinox",
       "autumn\nequinox"
@@ -141,7 +141,7 @@ lat <- metadata %>%
     axis.ticks = element_line(linewidth = 0.3),
     text = element_text(size = 9),
     axis.text = element_text(size = 2.2*ggplot2::.pt),
-    plot.margin = margin(0, 0, 0, 0, "pt"),
+    plot.margin = ggplot2::margin(0, 0, 0, 0, "pt"),
     panel.border = element_blank(),
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank()
