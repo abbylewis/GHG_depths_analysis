@@ -13,6 +13,7 @@ permutation_rf <- function(rep_n, for_rf_surf, num_vars, cat_vars) {
     slice_sample(n = 1) %>%
     ungroup() %>%
     select(-LakeID)
+  
   rf_surf <- randomForest(value ~ .,
     data = for_rf_surf_lim,
     proximity = TRUE, importance = T

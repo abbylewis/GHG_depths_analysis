@@ -1,4 +1,3 @@
-source(here::here("DataAnalysisScripts", "R", "pseudo_log_breaks.R"))
 source(here::here("DataAnalysisScripts", "R", "permutation_rf.R"))
 
 #' Plot drivers of gas ratio (bottom:surface)
@@ -32,7 +31,8 @@ generate_plot_ratio_permutation <- function(all_co2,
     "Osgood" = "Osgood~index",
     "Absolute_latitude" = "Abs.~lat.~(DD)",
     "bot_buoyancy_frequency" = "Buoy.~freq.~(s^-2)",
-    "bot_dens_dif" = "Dens.~diff.~(kg~m^-3)"
+    "bot_dens_dif" = "Dens.~diff.~(kg~m^-3)",
+    "temp_dif" = "Temp.~diff.~(ºC)"
   )
 
   levels_used <- recode(vars, !!!var_names_part)
@@ -40,9 +40,16 @@ generate_plot_ratio_permutation <- function(all_co2,
 
   ### SET UP ###
   for_rf_surf <- all_co2 %>%
-    filter(if_all(all_of(log_select), \(x) x > 0)) %>%
     ungroup() %>%
     mutate(
+      across(
+        all_of(log_select),
+        \(x) if_else(
+          x == 0,
+          min(x[x > 0], na.rm = TRUE) / 2,
+          x
+        )
+      ),
       across(all_of(log_select), log),
       across(where(is.character), as.factor)
     ) %>%
@@ -50,9 +57,16 @@ generate_plot_ratio_permutation <- function(all_co2,
     na.omit()
 
   for_rf_bot <- all_ch4 %>%
-    filter(if_all(all_of(log_select), \(x) x > 0)) %>%
     ungroup() %>%
     mutate(
+      across(
+        all_of(log_select),
+        \(x) if_else(
+          x == 0,
+          min(x[x > 0], na.rm = TRUE) / 2,
+          x
+        )
+      ),
       across(all_of(log_select), log),
       across(where(is.character), as.factor)
     ) %>%
@@ -235,37 +249,37 @@ generate_plot_ratio_permutation <- function(all_co2,
     facetted_pos_scales(
       x = list(
         var == "Max.~depth~(m)" ~ scale_x_continuous(
-          trans = scales::pseudo_log_trans(0.01, 10),
+          trans = scales::log_trans(),
           labels = scales::label_comma(drop0trailing = T),
           breaks = c(0.1, 1, 10, 100, 1000)
         ),
         var == "Mean~depth~(m)" ~ scale_x_continuous(
-          trans = scales::pseudo_log_trans(0.01, 10),
+          trans = scales::log_trans(),
           labels = scales::label_comma(drop0trailing = T),
           breaks = c(0.1, 1, 10, 100, 1000)
         ),
         var == "Osgood~index" ~ scale_x_continuous(
-          trans = scales::pseudo_log_trans(0.01, 10),
+          trans = scales::log_trans(),
           labels = scales::label_comma(drop0trailing = T),
           breaks = c(0.1, 1, 10, 100, 1000)
         ),
         var == "TP~(µg~L^-1)" ~ scale_x_continuous(
-          trans = scales::pseudo_log_trans(1, 10),
+          trans = scales::log_trans(),
           labels = scales::label_comma(drop0trailing = T),
           breaks = c(1, 10, 100, 1000)
         ),
         var == "Buoy.~freq.~(s^-2)" ~ scale_x_continuous(
-          trans = scales::pseudo_log_trans(0.0001, 10),
+          trans = scales::log_trans(),
           labels = scales::label_comma(drop0trailing = T),
           breaks = c(0.001, 0.01, 0.1)
         ),
         var == "Dens.~diff.~(kg~m^-3)" ~ scale_x_continuous(
-          trans = scales::pseudo_log_trans(0.001, 10),
+          trans = scales::log_trans(),
           labels = scales::label_comma(drop0trailing = T),
           breaks = c(0.01, 0.1, 1)
         ),
         var == "SA~(km^2)" ~ scale_x_continuous(
-          trans = scales::pseudo_log_trans(0.0001, 10),
+          trans = scales::log_trans(),
           labels = scales::label_comma(drop0trailing = T),
           breaks = c(0.001, 0.1, 10, 1000)
         ),

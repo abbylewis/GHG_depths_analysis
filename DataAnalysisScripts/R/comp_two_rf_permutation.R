@@ -1,5 +1,3 @@
-source(here::here("DataAnalysisScripts", "R", "pseudo_log_breaks.R"))
-
 #' Compare two random forest regressions
 #'
 #' @param all Dataframe of focal data and drivers
@@ -23,9 +21,16 @@ comp_two_rf_permutation <- function(all,
 
   ### SET UP ###
   focal <- all %>%
-    filter(if_all(all_of(log_select), \(x) x > 0)) %>%
     ungroup() %>%
     mutate(
+      across(
+        all_of(log_select),
+        \(x) if_else(
+          x == 0,
+          min(x[x > 0], na.rm = TRUE) / 2,
+          x
+        )
+      ),
       across(all_of(log_select), log),
       across(where(is.character), as.factor)
     ) %>%

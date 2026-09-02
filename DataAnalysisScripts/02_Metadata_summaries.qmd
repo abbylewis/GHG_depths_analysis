@@ -37,8 +37,8 @@ metadata <- read_delim("https://pasta.lternet.edu/package/data/eml/edi/2220/5/81
 layer_sum <- read_csv("../CompiledData/layer_sum.csv")
 
 #hydrolakes
-hylak_shp <- read_sf(dsn = "../../GasHype/RawData/HydroLAKES/HydroLAKES_polys_v10.shp", layer = "HydroLAKES_polys_v10") %>% st_drop_geometry() %>%
-#hylak_shp <- read_sf(dsn = "../CompiledData/HydroLAKES_points_v10.dbf") %>% st_drop_geometry() %>%
+#hylak_shp <- read_sf(dsn = "../../GasHype/RawData/HydroLAKES/HydroLAKES_polys_v10.shp", layer = "HydroLAKES_polys_v10") %>% st_drop_geometry() %>%
+hylak_shp <- read_sf(dsn = "../CompiledData/HydroLAKES_points_v10.dbf") %>% st_drop_geometry() %>%
   select(Hylak_id, Lake_area, Depth_avg, Pour_long, Pour_lat)
 ```
 
@@ -104,7 +104,7 @@ doys <- data %>%
   xlab("Sampling date") +
   theme_bw() +
   scale_x_continuous(
-    breaks = c(82, 266),
+    breaks = c(80, 264),
     labels = c(
       "spring\nequinox",
       "autumn\nequinox"
@@ -141,7 +141,7 @@ lat <- metadata %>%
     axis.ticks = element_line(linewidth = 0.3),
     text = element_text(size = 9),
     axis.text = element_text(size = 2.2*ggplot2::.pt),
-    plot.margin = margin(0, 0, 0, 0, "pt"),
+    plot.margin = ggplot2::margin(0, 0, 0, 0, "pt"),
     panel.border = element_blank(),
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank()
@@ -388,7 +388,9 @@ full <- map2 %>%
     y = 0.05,
     width = 0.13,
     height = 0.84
-  )
+  )+
+  draw_plot_label("a2", x = 0.83, y = 0.94, size = 10)+
+  draw_plot_label("a1", x = -0.008, y = 0.94, size = 10)
 
 comb <- ggpubr::ggarrange(full,
   ggpubr::ggarrange(depth, area, doys,
@@ -396,7 +398,7 @@ comb <- ggpubr::ggarrange(full,
     labels = c("b1", "b2", "b3"), label.x = -0.03,
     font.label = list(size = 10), align = "h"
   ),
-  nrow = 2, heights = c(2, 1), labels = c("a", "b"), label.y = c(1, 1.15)
+  nrow = 2, heights = c(2, 1), labels = c("a", "b"), label.y = c(1, 1.12)
 )
 ggsave(
   plot = comb, filename = "../Figures/Data summary - drivers.jpeg", width = 6,

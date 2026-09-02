@@ -358,6 +358,11 @@ sat %>%
   )
 # Medians
 meds
+
+sat %>%
+  filter(Gas == "CH[4]", pct < 100, !Conc == 0)
+
+nrow(sat %>% filter(Gas == "CH[4]", pct < 100, !Conc == 0)) / nrow(sat %>% filter(Gas == "CH[4]", pct < 100)) * 100
 ```
 
 ## Step 5: Saturation departures

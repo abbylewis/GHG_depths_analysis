@@ -188,7 +188,7 @@ stats <- data_for_box2 %>%
     !is.infinite(max)
   ) %>%
   group_by(Layer, gas) %>%
-  summarize(
+  reframe(
     kruskal_p = kruskal.test(max ~ LakeType)$p.value,
     p_vals = dunn.test::dunn.test(max,
       LakeType,
@@ -199,6 +199,7 @@ stats <- data_for_box2 %>%
       method = "Bonferroni"
     )$comparisons)
   ) %>%
+  group_by(Layer, gas) %>%
   reframe(rcompanion::cldList(
     comparison = names,
     p.value = p_vals
