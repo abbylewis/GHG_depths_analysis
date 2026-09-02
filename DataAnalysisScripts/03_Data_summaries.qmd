@@ -81,6 +81,10 @@ data %>%
 
 ## Step 3: Concentrations in surface vs. bottom waters
 
+layer_sum %\>%
+
+pivot_wider(values_from = c(CH4_umolL, CO2_umolL), names_from = Layer)
+
 ```{r surf_bot}
 layer_sum %>%
   select(LakeID, Source, Date, Layer, CH4_umolL, CO2_umolL) %>%
@@ -94,6 +98,20 @@ layer_sum %>%
     min = min(value, na.rm = T),
     max = max(value, na.rm = T)
   )
+
+#CO2 high bottom conc
+layer_sum %>% select(LakeID, Date, Layer, CH4_umolL, CO2_umolL) %>%
+  pivot_wider(values_from = c(CH4_umolL, CO2_umolL), names_from = Layer) %>%
+  filter(!is.na(CO2_umolL_bot)) %>%
+  filter(CO2_umolL_bot > 461) %>%
+  pull(CO2_umolL_surf) %>% median(na.rm = T)
+
+#CH4 high bottom conc
+layer_sum %>% select(LakeID, Date, Layer, CH4_umolL, CO2_umolL) %>%
+  pivot_wider(values_from = c(CH4_umolL, CO2_umolL), names_from = Layer) %>%
+  filter(!is.na(CH4_umolL_bot)) %>%
+  filter(CH4_umolL_bot > 235) %>%
+  pull(CH4_umolL_surf) %>% median(na.rm = T)
 
 max(data$CH4_umolL, na.rm = T)
 max(data$CH4_umolL[!data$LakeName == "untersee"], na.rm = T)
