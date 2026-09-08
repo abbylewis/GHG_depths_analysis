@@ -1,0 +1,329 @@
+---
+title: "Ecosystems"
+format: html
+editor: visual
+---
+
+This file compares gas concentrations across ecosystems.
+
+## Table of Contents
+
+-   Step 1: Load packages
+-   Step 2: Format our data
+-   Step 3: Streams and rivers
+-   Step 4: Oceans
+-   Step 5: Estuaries
+-   Step 6: Wetlands
+-   Step 7: Combine and plot
+-   Step 8: statistics
+
+## Step 1: Load packages
+
+```{r packages}
+library(tidyverse)
+source("R/make_ecosystem_plot.R")
+```
+
+## Step 2: Format our data
+
+```{r ours}
+# Load data
+layer_sum <- read_csv("../CompiledData/layer_sum.csv")
+
+layer_means <- layer_sum %>%
+  pivot_longer(cols = CO2_umolL:CH4_umolL) %>%
+  group_by(LakeID, name, Layer, Date) %>%
+  filter(!is.na(value)) %>%
+  mutate(
+    value = mean(value, na.rm = T),
+    yday = yday(Date),
+    year = year(Date),
+    
+  ) %>%
+  group_by(LakeID, name, Layer) %>%
+  summarize(
+    value = mean(value, na.rm = T)
+  ) %>%
+  rename(Ecosystem = Layer) %>%
+  mutate(Ecosystem = ifelse(Ecosystem == "surf",
+                            "Lake\nsurface",
+                            "Lake\nbottom"))
+```
+
+## Step 3: Streams and rivers
+
+```{r streams_and_rivers}
+#https://portal.edirepository.org/nis/mapbrowse?packageid=knb-lter-ntl.420.3
+#https://essd.copernicus.org/articles/15/2879/2023/essd-15-2879-2023.html
+streams <- read_csv("https://pasta.lternet.edu/package/data/eml/knb-lter-ntl/420/3/ba3e270bcab8ace5d157c995e4b791e4?key=n9dYnNE5ReoA53SyzOCNgcPzLZA")
+
+stream_sum = streams %>%
+  filter(CH4mean >= 0) %>%
+  group_by(Source_ID, Site_ID) %>%
+  summarize(value = mean(CH4mean, na.rm = T)) %>%
+  mutate(name = "CH4_umolL",
+         Ecosystem = "Streams and rivers",
+         Site_ID = as.character(Site_ID))
+
+#https://www.nature.com/articles/s41597-022-01915-0#Sec6
+#https://figshare.com/articles/dataset/CDFLOW_-_A_30-year_dataset_on_CO2_in_flowing_freshwaters_in_the_United_States/19787326
+
+flow <- read_csv("../CompiledData/CDFLOW.csv") %>%
+  filter(`CO2.mg/l` >= 0) %>%
+  group_by(COMID) %>%
+  summarize(name = "CO2_umolL",
+            value = mean(`CO2.mg/l`, na.rm = T) * 1000 / 44.01) %>%
+  mutate(Ecosystem = "Streams and rivers")
+
+#https://www.nature.com/articles/s44221-025-00522-8
+tropical_rivers <- read_csv("https://raw.githubusercontent.com/ClementDuvert/GHG.flux.tropics/refs/heads/main/Data/dataset_rivers_reduced.csv")
+
+tropical_rivers_sum <- tropical_rivers %>%
+  select(CO2_uM, CH4_uM) %>%
+  rename(CO2_umolL = CO2_uM,
+         CH4_umolL = CH4_uM) %>%
+  pivot_longer(cols = c(CO2_umolL, CH4_umolL)) %>%
+  filter(value >= 0) %>%
+  mutate(Ecosystem = "Streams and rivers")
+```
+
+## Step 4: Oceans
+
+```{r oceans}
+#https://memento.geomar.de/contact.html
+ocean <- readxl::read_excel("../CompiledData/nbparameter_data_export_2026-07-27.xls") %>%
+  mutate(ch4 = as.numeric(ch4))
+
+ocean_sum <- ocean %>%
+  mutate(name = "CH4_umolL",
+         value = ch4 / 1000) %>% # convert nmol/umol
+  filter(!ch4 == -999,
+         ch4 >= 0,
+         !grepl("estuary", Label, ignore.case = T)) %>%
+  select(name, value) %>%
+  mutate(Ecosystem = "Oceans")
+
+ocean_surface <- ocean %>%
+  mutate(name = "CH4_umolL",
+         value = ch4 / 1000) %>% # convert nmol/umol
+  filter(!ch4 == -999,
+         ch4 >= 0,
+         !grepl("estuary", Label, ignore.case = T),
+         `Depth [m]`<5) %>%
+  mutate(Ecosystem = "Ocean\nsurface")
+
+ocean_surface %>%
+  ggplot(aes(x = Latitude, y=Longitude))+
+  geom_point()
+```
+
+## Step 5: Estuaries
+
+```{r estuaries}
+#https://datadryad.org/dataset/doi:10.5061/dryad.7m0cfxpwz
+#https://onlinelibrary.wiley.com/doi/abs/10.1111/gcb.16233?casa_token=mjCDhe9Wxa4AAAAA:Y_SAwfde15RDOpb_M8HZE4l-mftS2RXxFXwNPFJKI1aCas4UiiWbbw1Cdj-Urv3Pxcxg8lv7Y0Ym08Y
+estuary <- read_csv("../CompiledData/estuary.csv")
+
+estuary_sum <- estuary %>%
+  select(CH4_umolL_Mean) %>%
+  rename(CH4_umolL = CH4_umolL_Mean) %>%
+  filter(!is.na(CH4_umolL),
+         CH4_umolL >= 0) %>%
+  pivot_longer(CH4_umolL) %>%
+  mutate(Ecosystem = "Estuaries")
+```
+
+## Step 6: Wetlands
+
+```{r wetlands}
+#https://data.usgs.gov/datacatalog/data/USGS:59a86e39e4b0421949a84627
+#https://www.frdr-dfdr.ca/repo/dataset/31a0f83a-f1f9-4517-8a6b-6d0674eee87b
+#https://portal.edirepository.org/nis/mapbrowse?packageid=edi.1601.1
+#https://borealisdata.ca/dataset.xhtml?persistentId=doi:10.5683/SP3/CJH4YV
+
+logozzo <- readxl::read_excel(here::here("CompiledData","Logozzo_ppr_ghg_2021.xlsx"),
+                              sheet = 2)
+wetland_logozzo <- logozzo %>%
+  mutate(
+    T_K = as.numeric(Water.Temp) + 273.15,
+    K_CO2 = exp(
+      -58.0931 +
+      90.5069 * (100 / T_K) +
+      22.2940 * log(T_K / 100)
+    ),
+    K_CH4 = exp(
+      -68.8862 +
+      101.4956 * (100 / T_K) +
+      28.7314 * log(T_K / 100)
+    ),
+    CO2_umolL = as.numeric(pCO2.insitu) * K_CO2,
+    CH4_umolL = as.numeric(pCH4.insitu) * K_CH4
+  ) %>%
+  group_by(Site_name) %>%
+  summarize(CH4_umolL = mean(CH4_umolL, na.rm = T),
+            CO2_umolL = mean(CO2_umolL, na.rm = T)) %>%
+  pivot_longer(cols = c(CO2_umolL, CH4_umolL)) %>%
+  mutate(Ecosystem = "Freshwater wetlands")
+
+lloreda <- read_csv(here::here("CompiledData","Merged_synoptic.csv")) %>%
+  filter(Sample_Type == "SW",
+         !is.na(Site_new), # These aren't in the paper
+         !Site_ID == "ND-outlet"
+         ) 
+
+wetland_lloreda <- lloreda %>%
+  group_by(Site_ID) %>%
+  summarize(CH4_umolL = mean(CH4_uM, na.rm = T),
+         CO2_umolL = mean(CO2_uM, na.rm = T)) %>%
+  pivot_longer(cols = c(CO2_umolL, CH4_umolL)) %>%
+  mutate(Ecosystem = "Freshwater wetlands")
+
+wetland_bansal <- read_csv(here::here("CompiledData","dissolved_gas.csv")) %>%
+  mutate(across(where(is.numeric), ~na_if(.x, -9999))) %>%
+  mutate(
+    T_K = S_W_TEMP_C + 273.15,
+    K_CO2 = exp(
+      -58.0931 +
+      90.5069 * (100 / T_K) +
+      22.2940 * log(T_K / 100)
+    ),
+    K_CH4 = exp(
+      -68.8862 +
+      101.4956 * (100 / T_K) +
+      28.7314 * log(T_K / 100)
+    ),
+    CO2_umolL = as.numeric(CO2_CONC) * K_CO2,
+    CH4_umolL = as.numeric(CH4_CONC) * K_CH4
+  ) %>%
+  group_by(WETLAND_ID) %>%
+  summarize(CH4_umolL = mean(CH4_umolL, na.rm = T),
+         CO2_umolL = mean(CO2_umolL, na.rm = T)) %>%
+  pivot_longer(cols = c(CO2_umolL, CH4_umolL)) %>%
+  mutate(Ecosystem = "Freshwater wetlands")
+
+wetland_hassan <- read_csv("../CompiledData/Inter-regional spatial data_peatland pools.csv") %>%
+  group_by(`Peatland Pools`) %>%
+  summarize(
+    CO2_umolL = as.numeric(`CO2-C (mgL-1)`) * 1000 / 12.011,
+    CH4_umolL = as.numeric(`CH4 (μgL-1)`) / 12.011 #confirmed this with figure in paper
+  )%>%
+  pivot_longer(cols = c(CO2_umolL, CH4_umolL)) %>%
+  mutate(Ecosystem = "Freshwater wetlands")
+
+wetland <- bind_rows(
+  wetland_bansal,
+  wetland_lloreda,
+  wetland_logozzo,
+  wetland_hassan
+)
+```
+
+## Step 7: Combine and plot
+
+```{r combine_and_plot}
+
+factor_levels = c("Oceans", "Estuaries", "Streams and rivers", "Freshwater wetlands",
+                  "Lake\nsurface", "Lake\nbottom")
+
+comb <- bind_rows(stream_sum,
+                  tropical_rivers_sum,
+                  estuary_sum,
+                  ocean_sum,
+                  wetland,
+                  #ocean_surface,
+                  flow) %>%
+  bind_rows(layer_means) %>%
+  mutate(Ecosystem = factor(Ecosystem,
+                            factor_levels)) %>%
+  mutate(name = recode_values(name,
+                              "CH4_umolL"~"CH[4]",
+                              "CO2_umolL"~"CO[2]"),
+         study = ifelse(grepl("Lake", Ecosystem),
+                        "This study",
+                        NA)) %>%
+  filter(value >= 0) %>%
+  ungroup() 
+
+text_init = comb %>%
+  group_by(Ecosystem, name, study) %>%
+  summarize(n = sum(!is.na(value)),
+            median = median(value, na.rm = T),
+            label_median = paste0("median =\n", format(median, drop0trailing = T, digits = 1)),
+            label = paste0("n =\n", n))
+
+# Consistent text positions
+text <- comb %>%
+  group_by(name) %>%
+    mutate(
+      value = if_else(
+        value == 0,
+        min(value[value > 0], na.rm = TRUE),
+        value,
+        missing = NA
+      )
+    )%>%
+  summarize(
+    xmin = min(value, na.rm = TRUE),
+    xmax = max(value, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    xpos = 10^(log10(xmin) + 0.01 * (log10(xmax) - log10(xmin))),
+    xpos2 = 10^(log10(xmax) - 0.01 * (log10(xmax) - log10(xmin))),
+    ypos = 10^(log10(xmax) + 0.14 * (log10(xmax) - log10(xmin)))
+  ) %>%
+  left_join(text_init, by = "name") %>%
+  mutate(
+    #xpos = ifelse(grepl("Ocean", Ecosystem) & name == "CH[4]",
+         #              xpos2, xpos),
+         #hjust = ifelse(grepl("Ocean", Ecosystem) & name == "CH[4]",
+         #              1, 0),
+    xpos = xpos2,
+         hjust = 1) %>%
+  mutate(label = ifelse((Ecosystem == "Oceans"&name == "CH[4]") |
+                          (Ecosystem == "Streams and rivers"&name == "CO[2]"), 
+                        label, sub("n =\n", "", label)),
+         label_median = ifelse((Ecosystem == "Oceans"&name == "CH[4]") |
+                          (Ecosystem == "Streams and rivers"&name == "CO[2]"),
+                        label_median, sub("median =\n", "", label_median)))
+
+row_height <- 0.9 #cm
+
+n_ch4 <- n_distinct(filter(comb, name == "CH[4]")$Ecosystem)
+n_co2 <- n_distinct(filter(comb, name == "CO[2]")$Ecosystem)
+
+final2 <- make_ecosystem_plot_wide(comb, text)
+final2
+ggsave(plot = final2, "../Figures/ecosystem_comparison2.png", 
+       width = 5.5, height = 3.5)
+```
+
+## Step 8: Statistics
+
+```{r stats}
+library(dplyr)
+library(rstatix)
+
+kw_results <- comb %>%
+  filter(value >= 0) %>%
+  group_by(name) %>%
+  rstatix::kruskal_test(value ~ Ecosystem)
+
+kw_results
+
+pairwise <- comb %>%
+  filter(value >= 0) %>%
+  mutate(value = log10(value)) %>%
+  group_by(name) %>%
+  rstatix::dunn_test(value ~ Ecosystem)
+
+attributes(pairwise)
+
+pairwise
+
+comb %>%
+  count(name, Ecosystem, value) %>%
+  group_by(name, Ecosystem) %>%
+  filter(name == "CO[2]") %>%
+  arrange(desc(n), .by_group = F)
+```

@@ -20,9 +20,9 @@ This file calculates summary statistics for the manuscript
 library(tidyverse)
 
 # Load data
-data <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/2220/5/8553f79eeea9a6f722fc50d733ca9a74?key=n9dYnNE5ReoA53SyzOCNgcPzLZA") %>%
+data <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/2220/6/8553f79eeea9a6f722fc50d733ca9a74?key=n9dYnNE5ReoA53SyzOCNgcPzLZA") %>%
   filter(Focal_site) # Cleaned
-metadata <- read_delim("https://pasta.lternet.edu/package/data/eml/edi/2220/5/81f003749ad039837475571390b20190?key=n9dYnNE5ReoA53SyzOCNgcPzLZA") %>%
+metadata <- read_delim("https://pasta.lternet.edu/package/data/eml/edi/2220/6/81f003749ad039837475571390b20190?key=n9dYnNE5ReoA53SyzOCNgcPzLZA") %>%
   filter(Focal_site)
 layer_sum <- read_csv("../CompiledData/layer_sum.csv")
 
@@ -87,10 +87,6 @@ data %>%
 ```
 
 ## Step 3: Concentrations in surface vs. bottom waters
-
-layer_sum %\>%
-
-pivot_wider(values_from = c(CH4_umolL, CO2_umolL), names_from = Layer)
 
 ```{r surf_bot}
 layer_sum %>%

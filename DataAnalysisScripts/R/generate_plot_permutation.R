@@ -309,3 +309,95 @@ generate_plot_permutation <- function(all, vars, var_names, gas_name, log_vars,
   )
   return(plot_gas)
 }
+
+generate_resids_permutation <- function(all, vars, var_names, gas_name, log_vars,
+                                      pSat = F, reps = 100) {
+  vars <- vars[!vars %in% c("LakeID", "Latitude", "Longitude")]
+  colors <- c("#69140E", "#40476D", "#1098F7", "#3F67B0","#0C7C59", "#E65F5C", "gray70", "grey70", "grey70")
+  names(colors) <- vars
+  
+  var_names_part <- c(
+    "DO_mgL" = "DO~(mg~L^-1)",
+    "SurfaceArea_km2" = "SA~(km^2)",
+    "MaximumDepth_m" = "Max.~depth~(m)",
+    "MeanDepth_m" = "Mean~depth~(m)",
+    "TP_ugL_mean" = "TP~(µg~L^-1)",
+    "Temp_C" = "Temp.~(ºC)",
+    "Osgood" = "Osgood~index",
+    "Absolute_latitude" = "Abs.~lat.~(DD)",
+    "buoyancy_frequency" = "Buoy.~freq.~(s^-2)",
+    "daylength" = "Day~length~(h)",
+    "dens_dif" = "Dens.~diff.~(kg~m^-3)",
+    "temp_dif" = "Temp.~diff.~(ºC)"
+  )
+  
+  levels_used <- recode(vars, !!!var_names_part)
+  log_select <- log_vars[log_vars %in% vars]
+  
+  ### SET UP ###
+  for_rf_surf <- all %>%
+    filter(
+      name == gas_name,
+      Layer == "surf"
+    ) %>%
+    ungroup() %>%
+    mutate(
+      across(
+        all_of(log_select),
+        \(x) if_else(
+          x == 0,
+          min(x[x > 0], na.rm = TRUE) / 2,
+          x
+        )
+      ),
+      across(all_of(log_select), log),
+      across(where(is.character), as.factor)
+    ) %>%
+    select(all_of(c("value", vars, "LakeID"))) %>%
+    na.omit()
+  
+  for_rf_bot <- all %>%
+    filter(
+      name == gas_name,
+      Layer == "bot"
+    ) %>%
+    ungroup() %>%
+    mutate(
+      across(
+        all_of(log_select),
+        \(x) if_else(
+          x == 0,
+          min(x[x > 0], na.rm = TRUE) / 2,
+          x
+        )
+      ),
+      across(all_of(log_select), log),
+      across(where(is.character), as.factor)
+    ) %>%
+    select(all_of(c("value", vars, "LakeID"))) %>%
+    na.omit()
+  
+  num_vars <- vars[sapply(for_rf_surf[vars], is.numeric)]
+  cat_vars <- vars[sapply(for_rf_surf[vars], is.factor)]
+  
+  ### RUN RANDOM FOREST ###
+  rf_surf <- lapply(1:reps, function(x) {
+    permutation_rf(x, for_rf_surf, num_vars, cat_vars)
+  })
+  rf_bot <- lapply(1:reps, function(x) {
+    permutation_rf(x, for_rf_bot, num_vars, cat_vars)
+  })
+  
+  ## Extract resids
+  resid_surf <- data.frame(LakeID = apply(sapply(rf_surf, "[[", 5), 1, unique),
+                           resid = rowMeans(sapply(rf_surf, "[[", 4)))
+  resid_bot <- data.frame(LakeID = apply(sapply(rf_bot, "[[", 5), 1, unique),
+                           resid = rowMeans(sapply(rf_bot, "[[", 4)))
+  
+  resids <- bind_rows(surf = resid_surf,
+                      bot = resid_bot,
+                      .id = "Layer") %>%
+    mutate(gas = gas_name)
+  
+  return(resids)
+}

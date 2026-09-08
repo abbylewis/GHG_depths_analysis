@@ -25,13 +25,13 @@ library(rLakeAnalyzer)
 library(patchwork)
 
 # Load data from EDI
-data <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/2220/5/ca2482ef3c43f053ae13cdf2bf5ba7a8?key=n9dYnNE5ReoA53SyzOCNgcPzLZA") %>%
+data <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/2220/6/ca2482ef3c43f053ae13cdf2bf5ba7a8?key=n9dYnNE5ReoA53SyzOCNgcPzLZA") %>%
   filter(Focal_site) # Not cleaned
-cleaned_data <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/2220/5/8553f79eeea9a6f722fc50d733ca9a74?key=n9dYnNE5ReoA53SyzOCNgcPzLZA") %>%
+cleaned_data <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/2220/6/8553f79eeea9a6f722fc50d733ca9a74?key=n9dYnNE5ReoA53SyzOCNgcPzLZA") %>%
   filter(Focal_site) # Cleaned
-temp <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/2220/5/a101f4f31d3b2aa3dd81490892bd0b15?key=n9dYnNE5ReoA53SyzOCNgcPzLZA") %>%
+temp <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/2220/6/a101f4f31d3b2aa3dd81490892bd0b15?key=n9dYnNE5ReoA53SyzOCNgcPzLZA") %>%
   filter(Focal_site)
-metadata <- read_delim("https://pasta.lternet.edu/package/data/eml/edi/2220/5/81f003749ad039837475571390b20190?key=n9dYnNE5ReoA53SyzOCNgcPzLZA") %>%
+metadata <- read_delim("https://pasta.lternet.edu/package/data/eml/edi/2220/6/81f003749ad039837475571390b20190?key=n9dYnNE5ReoA53SyzOCNgcPzLZA") %>%
   filter(Focal_site)
 ```
 
@@ -187,7 +187,7 @@ layer_sum_not_mean <- cleaned_data %>%
     surf_depth = min(Depth_m, na.rm = T),
     surf_value = value[Depth_m == surf_depth],
     bot_depth = max(Depth_m, na.rm = T),
-    bot_value = value[Depth_m == bot_depth]
+    bot_value = mean(value[Depth_m == bot_depth], na.rm = T)
   ) %>%
   pivot_longer(
     cols = c(surf_depth, surf_value, bot_depth, bot_value),
@@ -219,7 +219,7 @@ layer_sum %>% filter(Layer == "surf") %>% mutate(ratio = Depth_m/MaximumDepth_m)
 a <- layer_sum %>% filter(Layer == "surf") %>% mutate(ratio = Depth_m/MaximumDepth_m) %>%
   ggplot(aes(x = ratio*100)) +
   geom_histogram(binwidth = 2) +
-  labs(x = "Perecent of max depth", y = "Count of 'surface' meaurments") +
+  labs(x = "Perecent of max depth", y = "Count of 'surface' measurements") +
   theme_bw()
 
 #' Bottom measurements
@@ -230,11 +230,12 @@ layer_sum %>% filter(Layer == "bot") %>% mutate(ratio = Depth_m/MaximumDepth_m) 
 b <- layer_sum %>% filter(Layer == "bot") %>% mutate(ratio = Depth_m/MaximumDepth_m) %>%
   ggplot(aes(x = ratio*100)) +
   geom_histogram(binwidth = 2) +
-  labs(x = "Perecent of max depth", y = "Count of 'bottom' meaurments") +
+  labs(x = "Perecent of max depth", y = "Count of 'bottom' measurements") +
   scale_x_continuous(limits = c(60,100)) +
   theme_bw()
 
 a+b
+ggsave("../Figures/R2.png", width = 6, height = 3.5)
 
 test2 <- layer_sum %>% filter(Layer == "bot") %>% mutate(ratio = Depth_m/MaximumDepth_m) %>%
   filter(ratio < 0.66)
@@ -253,12 +254,12 @@ median(
 ```
 
 Correcting depth in metadata
-```{r}
 
+```{r}
 true_max_depths <- layer_sum_not_mean %>% left_join(metadata) %>%
   group_by(LakeID) %>% summarize(
-        true_max_depth = ifelse(max(Depth_m, na.rm = T) > first(MaximumDepth_m), 
-                                max(Depth_m, na.rm = T), first(MaximumDepth_m))
+        true_max_depth = ifelse(max(Depth_m, na.rm = T) > max(MaximumDepth_m), 
+                                max(Depth_m, na.rm = T), max(MaximumDepth_m))
   )
 
 metadata_correct_max_depth <- metadata %>% left_join(true_max_depths) %>%

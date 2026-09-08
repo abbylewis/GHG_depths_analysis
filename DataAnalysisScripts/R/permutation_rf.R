@@ -8,11 +8,17 @@
 #' @returns list with model R2, data frame of partial regression results, and data frame of variable importance
 #'
 permutation_rf <- function(rep_n, for_rf_surf, num_vars, cat_vars) {
-  for_rf_surf_lim <- for_rf_surf %>%
+  surf_lim <- for_rf_surf %>%
     group_by(LakeID) %>%
     slice_sample(n = 1) %>%
-    ungroup() %>%
+    ungroup()
+  
+  for_rf_surf_lim <- surf_lim %>%
     select(-LakeID)
+  
+  lakes <- surf_lim %>%
+    mutate(LakeID = as.character(LakeID)) %>%
+    pull(LakeID)
   
   rf_surf <- randomForest(value ~ .,
     data = for_rf_surf_lim,
@@ -20,6 +26,8 @@ permutation_rf <- function(rep_n, for_rf_surf, num_vars, cat_vars) {
   )
   surf_r2 <- rf_surf$rsq[length(rf_surf$rsq)]
 
+  resids <- predict(rf_surf) - for_rf_surf_lim$value
+  
   # Calculate partial correlations
   partials_df_surf <- pdp::partial(rf_surf,
     pred.var = num_vars[1],
@@ -43,5 +51,5 @@ permutation_rf <- function(rep_n, for_rf_surf, num_vars, cat_vars) {
     mutate(rep = rep_n)
   ImpData_surf$Var.Names <- row.names(ImpData_surf)
 
-  return(list(surf_r2, partials_df_surf, ImpData_surf))
+  return(list(surf_r2, partials_df_surf, ImpData_surf, resids, lakes))
 }

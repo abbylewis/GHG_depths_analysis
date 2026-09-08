@@ -16,6 +16,7 @@ This file runs random forest regressions to characterize the drivers of surface-
 -   Step 6: Simple/complex comparison
 -   Step 7: Ratio analysis
 -   Step 8: Percent saturation
+-   Step 9: Map RF data
 
 ## Step 1: Load data and packages
 
@@ -34,12 +35,8 @@ source("R/comp_two_rf_permutation.R")
 source("R/spatial_comp_permutation.R")
 
 # Load data
-metadata <- read_delim("https://pasta.lternet.edu/package/data/eml/edi/2220/5/81f003749ad039837475571390b20190?key=n9dYnNE5ReoA53SyzOCNgcPzLZA") %>%
-  filter(Focal_site) %>%
-  mutate(TP_ugL_mean = if_else(LakeName == "superior",
-                               3,
-                               TP_ugL_mean,
-                               missing = TP_ugL_mean))
+metadata <- read_delim("https://pasta.lternet.edu/package/data/eml/edi/2220/6/81f003749ad039837475571390b20190?key=n9dYnNE5ReoA53SyzOCNgcPzLZA") %>%
+  filter(Focal_site) 
 layer_sum <- read_csv("../CompiledData/layer_sum.csv")
 
 # Create dictionary to use throughout
@@ -160,8 +157,6 @@ all <- layer_plot_data %>%
       NA,
       StratificationRegime
     ),
-    value = ifelse(value <= 0, 0.001, value),
-    value = log(value),
     TrophicStatus = factor(TrophicStatus,
       levels = c(
         "oligotrophic",
@@ -194,7 +189,11 @@ all <- layer_plot_data %>%
       ),
       yday
     )
-  )
+  ) %>%
+  group_by(name) %>%
+  mutate(
+    value = ifelse(value <= 0, min(value[value > 0], na.rm = TRUE) / 2, value),
+    value = log(value))
 
 # The order of these controls the order of the drivers in importance/partial plots
 vars <- c(
@@ -674,7 +673,7 @@ ggsave(ch4_plot_pct,
 )
 ```
 
-## Map RF data
+## Step 9: Map RF data
 
 ```{r map2}
 library(rnaturalearth)

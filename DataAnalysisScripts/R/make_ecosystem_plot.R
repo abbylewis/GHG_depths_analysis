@@ -48,15 +48,13 @@ make_ecosystem_plot <- function(comb, gas, text) {
 
 make_ecosystem_plot_wide <- function(comb, text){
   letters <- comb %>%
-    filter(value >= 0) %>%
     group_by(name) %>%
     group_modify(~{
       
       # Dunn's test
       dunn <- rstatix::dunn_test(
         .x,
-        value ~ Ecosystem,
-        p.adjust.method = "BH"
+        value ~ Ecosystem
       )
       
       # Named vector of adjusted p-values
@@ -80,7 +78,8 @@ make_ecosystem_plot_wide <- function(comb, text){
           .groups = "drop"
         ),
       by = c("name", "Ecosystem")
-    )
+    ) %>%
+    mutate(Ecosystem = factor(Ecosystem, levels = factor_levels))
   
   comb %>% 
     filter(value >= 0) %>% 
@@ -107,7 +106,6 @@ make_ecosystem_plot_wide <- function(comb, text){
       vjust = -0.5,
       size = 3,
       aes(
-        x = Ecosystem,
         y = ymax, 
         label = letter,
         color = Ecosystem
