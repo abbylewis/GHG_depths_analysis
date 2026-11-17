@@ -255,7 +255,7 @@ median(
 
 Correcting depth in metadata
 
-```{r}
+```{r correct_depth}
 true_max_depths <- layer_sum_not_mean %>% left_join(metadata) %>%
   group_by(LakeID) %>% summarize(
         true_max_depth = ifelse(max(Depth_m, na.rm = T) > max(MaximumDepth_m), 

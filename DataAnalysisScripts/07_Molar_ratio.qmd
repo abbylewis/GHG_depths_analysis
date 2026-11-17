@@ -25,7 +25,7 @@ layer_sum <- read_csv("../CompiledData/layer_sum.csv")
 
 ## Step 2: Format data
 
-```{r}
+```{r format}
 formatted_data <- layer_sum %>%
   group_by(LakeID, Date) %>%
   mutate(Oxygen = median(DO_mgL[Layer == "bot"], na.rm = T)) %>%
@@ -39,7 +39,7 @@ formatted_data <- layer_sum %>%
 
 ## Step 3: Plot molar concentrations
 
-```{r}
+```{r plot}
 tot <- formatted_data %>%
   mutate(
     total_umolL = CH4_umolL + CO2_umolL,

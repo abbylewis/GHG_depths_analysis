@@ -14,5 +14,3 @@ All data are sourced directly from the GHG-depths dataset (<https://doi.org/10.6
 ## File structure
 
 All analysis code is located in `./DataAnalysisScripts`. A compiled dataset of surface and bottom water data is created by `./DataAnalysisScripts/01_Surf_bot_sum.Rmd` and output in `./CompiledData`. Other analysis code files can be run in any order. Figures created by these analysis files are archived in `./Figures`.
-
-## 

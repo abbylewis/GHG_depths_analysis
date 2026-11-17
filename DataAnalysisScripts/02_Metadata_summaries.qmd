@@ -461,7 +461,7 @@ metadata %>%
 
 ## Step 5: Make supplemental table
 
-```{r}
+```{r SI_table}
 sum <- metadata %>%
   # Lakes could have multiple reported trophic/mixing regimes. Deal with that first
   group_by(LakeID) %>%

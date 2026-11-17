@@ -215,7 +215,7 @@ log_select <- log_vars[log_vars %in% vars]
 
 ## Step 3: Plot summary stats about drivers
 
-```{r}
+```{r summary_stats}
 for_cor <- all %>%
   ungroup() %>%
   mutate(
